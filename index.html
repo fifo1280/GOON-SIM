@@ -580,11 +580,14 @@
         alert("Účet byl úspěšně vytvořen a data uložena!");
         
         localStorage.setItem('game_logged_user', user);
+    
         updateAuthUI(user);
     } catch (e) {
-        console.error("Chyba při registraci: ", e);
-        alert("Chyba při vytváření účtu.");
-    }
+    console.error("Chyba při registraci: ", e);
+    alert("Chyba při vytváření účtu: " + e.message);
+}
+
+
 }
 
 async function cloudLogin() {
