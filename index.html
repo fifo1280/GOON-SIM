@@ -548,7 +548,7 @@
             }
         }
 
-        async function cloudRegister() {
+     async function cloudRegister() {
     const user = document.getElementById('auth-user').value.trim();
     const pass = document.getElementById('auth-pass').value.trim();
     
@@ -580,54 +580,14 @@
         alert("Účet byl úspěšně vytvořen a data uložena!");
         
         localStorage.setItem('game_logged_user', user);
-    
         updateAuthUI(user);
     } catch (e) {
-    console.error("Chyba při registraci: ", e);
-    alert("Chyba při vytváření účtu: " + e.message);
-}
-
-
-}
-
-async function cloudLogin() {
-    const user = document.getElementById('auth-user').value.trim();
-    const pass = document.getElementById('auth-pass').value.trim();
-    
-    if (!user || !pass) {
-        alert("Zadej uživatelské jméno i heslo!");
-        return;
-    }
-
-    try {
-        const docRef = doc(db, "users", user);
-        const docSnap = await getDoc(docRef);
-        
-        if (!docSnap.exists()) {
-            alert("Účet s tímto jménem neexistuje.");
-            return;
-        }
-
-        const userData = docSnap.data();
-        
-        if (userData.password !== pass) {
-            alert("Nesprávné heslo!");
-            return;
-        }
-
-        alert("Přihlášení úspěšné! Data byla načtena.");
-        localStorage.setItem('game_logged_user', user);
-        
-        if (window.applyLoadedData) {
-            window.applyLoadedData(userData);
-        }
-        
-        updateAuthUI(user);
-    } catch (e) {
-        console.error("Chyba při přihlášení: ", e);
-        alert("Chyba při přihlašování.");
+        console.error("Chyba při registraci: ", e);
+        alert("Chyba při vytváření účtu: " + e.message);
     }
 }
+
+
 
 function cloudLogout() {
     localStorage.removeItem('game_logged_user');
