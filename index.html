@@ -196,6 +196,23 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
 
+                
+        const app = initializeApp(JSON.parse(customConfigStr));
+        const db = getFirestore(app);
+
+        // TADY TO PŘIDEJ: Vynutíme uložení do globálního okna, aby to viděl i zbytek stránek
+        window.db = db;
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+        window.collection = collection;
+
+                        const app = initializeApp(JSON.parse(customConfigStr));
+        const db = getFirestore(app);
+
+        // TADY TO PŘIDEJ: Vynutíme uložení do globálního okna, aby to viděl i 
+
+
                 // Autentizace podle pravidel
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
