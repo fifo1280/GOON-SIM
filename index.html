@@ -75,8 +75,8 @@
             <span class="text-2xl" id="header-emoji">🗿</span>
             <h1 class="font-black text-xl bg-gradient-to-r from-purple-400 to-amber-300 bg-clip-text text-transparent">Gooning Simulator</h1>
         </div>
-        <div class="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300">
-            🟢 Online Mód (GitHub Synchronizace)
+        <div class="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300 flex items-center gap-2" id="status-badge">
+            <span id="status-indicator">🟡 Načítám Cloud...</span>
         </div>
     </header>
 
@@ -109,18 +109,18 @@
             </div>
         </section>
 
-        <!-- PRAVÝ SLOUPEC: Online Žebříček -->
+        <!-- PRAVÝ SLOUPEC: Online Žebříček & Ukládání -->
         <section class="lg:col-span-3 p-6 bg-slate-950 flex flex-col">
             <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-2">
                 <span>🏆</span> Online Žebříček
             </h2>
 
-            <!-- Formulář pro zápis do žebříčku -->
+            <!-- Formulář pro zápis a ukládání -->
             <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 mb-4 space-y-3 shadow-md">
                 <label class="block text-xs text-slate-400">Tvoje Přezdívka:</label>
                 <input type="text" id="player-nick" placeholder="Zadej jméno..." maxlength="15" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-purple-500 outline-none">
-                <button id="save-score-btn" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 px-3 rounded-lg text-xs uppercase tracking-wider transition shadow-md">
-                    Uložit mé skóre
+                <button id="save-score-btn" onclick="if(window.saveGameProgress) window.saveGameProgress();" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 px-3 rounded-lg text-xs uppercase tracking-wider transition shadow-md active:scale-95">
+                    💾 Uložit pozici & skóre
                 </button>
             </div>
 
@@ -136,7 +136,7 @@
                     </thead>
                     <tbody id="leaderboard-body" class="divide-y divide-slate-800/60">
                         <tr>
-                            <td colspan="3" class="py-4 text-center text-slate-500">Načítám online žebříček...</td>
+                            <td colspan="3" class="py-4 text-center text-slate-500">Načítám žebříček...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -145,97 +145,173 @@
 
     </main>
 
-    <!-- FIREBASE FIRESTORE INTEGRATION -->
+    <!-- FIREBASE FIRESTORE INTEGRACE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Konfigurace z prostředí nebo výchozí fallback
+        const customConfigStr = "{\n  \"apiKey\": \"AIzaSyBlsK8qClnYEyKco0Z2TZ83kuDpSrB4B8g\",\n  \"authDomain\": \"goon-sim.firebaseapp.com\",\n  \"projectId\": \"goon-sim\",\n  \"storageBucket\": \"goon-sim.firebasestorage.app\",\n  \"messagingSenderId\": \"627803499063\",\n  \"appId\": \"1:627803499063:web:b0b19c9da4e837dc10adb2\",\n  \"measurementId\": \"G-9FEPHLHVWB\"\n}";
+        let userCustomConfig = null;
+        if (customConfigStr) {
+            try { userCustomConfig = JSON.parse(customConfigStr); } catch(e) { console.warn("Neplatný custom Firebase JSON", e); }
+        }
+
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "AIzaSyDemoConfigKeyForTestingOnly",
-                authDomain: "gooning-sim.firebaseapp.com",
-                projectId: "gooning-sim",
-                storageBucket: "gooning-sim.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "1:123456789:web:abcdef123456"
-            };
+            : userCustomConfig;
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'gooning-sim-v1';
         
         let app, db, auth, currentUser = null;
 
-        try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
+        async function initFirebase() {
+            const statusIndicator = document.getElementById('status-indicator');
 
-            // Autentizace
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
+            if (!firebaseConfig) {
+                if (statusIndicator) statusIndicator.innerHTML = '💾 Lokální zálohování (Pro GitHub vložte Firebase Config)';
+                loadLocalProgress();
+                return;
             }
 
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    currentUser = user;
-                    listenToLeaderboard();
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Autentizace podle pravidel
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
                 }
-            });
-        } catch (err) {
-            console.warn("Firebase nepřípojen (lokální režim):", err);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUser = user;
+                        if (statusIndicator) statusIndicator.innerHTML = '🟢 Cloud Ukládání & Žebříček Aktivní';
+                        listenToLeaderboard();
+                        await loadCloudProgress();
+                    }
+                });
+            } catch (err) {
+                console.warn("Chyba při připojení k Firebase:", err);
+                if (statusIndicator) statusIndicator.innerHTML = '⚠️ Pouze lokální paměť';
+                loadLocalProgress();
+            }
         }
 
-        // Cesta k veřejnému žebříčku podle pravidla Rule 1
+        // Cesty podle Pravidla 1
         function getLeaderboardRef() {
             return collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
         }
 
-        // Načítání Žebříčku v reálném čase
+        function getUserSaveRef() {
+            return doc(db, 'artifacts', appId, 'users', currentUser.uid, 'saves', 'current');
+        }
+
+        // Žebříček v reálném čase
         function listenToLeaderboard() {
             if (!db || !currentUser) return;
             
             try {
-                // RULE 2: Žádné složité query, řazení v paměti JS
+                // Pravidlo 2: Jednoduché query bez orderBy, řazení v JS
                 onSnapshot(getLeaderboardRef(), (snapshot) => {
                     const players = [];
-                    snapshot.forEach(doc => {
-                        players.push({ id: doc.id, ...doc.data() });
+                    snapshot.forEach(d => {
+                        players.push({ id: d.id, ...d.data() });
                     });
 
-                    // Seřazení podle skóre v JS
                     players.sort((a, b) => (b.coins || 0) - (a.coins || 0));
-
                     renderLeaderboardUI(players.slice(0, 15));
                 }, (error) => {
-                    console.error("Chyba při načítání žebříčku:", error);
+                    console.error("Chyba načítání žebříčku:", error);
                 });
             } catch (e) {
                 console.error(e);
             }
         }
 
-        // Odeslání skóre
-        window.submitOnlineScore = async function(nickname, coins, clicks) {
-            if (!db || !currentUser) {
-                alert("Online databáze není dostupná.");
-                return;
-            }
+        // Uložení hry do Firebase i lokální paměti
+        window.saveGameProgress = async function() {
+            saveLocalProgress();
+
+            if (!db || !currentUser) return;
+
+            const nick = document.getElementById('player-nick').value.trim() || 'Anonym';
+            localStorage.setItem('goon_nick', nick);
+
+            const stateData = {
+                nick: nick,
+                coins: Math.floor(window.gameScore || 0),
+                clicks: window.gameClicks || 0,
+                cps: window.gameCps || 0,
+                clickPower: window.gameClickPower || 1,
+                upgrades: window.gameUpgradesState || [],
+                updatedAt: Date.now()
+            };
+
             try {
-                const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
-                await setDoc(playerDocRef, {
-                    nick: nickname || 'Anonym',
-                    coins: Math.floor(coins),
-                    clicks: clicks,
+                // Uložení soukromého savu
+                await setDoc(getUserSaveRef(), stateData, { merge: true });
+
+                // Uložení veřejného skóre v žebříčku
+                const lbRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
+                await setDoc(lbRef, {
+                    nick: nick,
+                    coins: Math.floor(window.gameScore || 0),
+                    clicks: window.gameClicks || 0,
                     updatedAt: Date.now()
                 }, { merge: true });
+
+                const btn = document.getElementById('save-score-btn');
+                if (btn) {
+                    btn.textContent = '✅ Uloženo do cloudu!';
+                    setTimeout(() => btn.textContent = '💾 Uložit pozici & skóre', 2000);
+                }
             } catch (err) {
-                console.error("Chyba při ukládání skóre:", err);
+                console.error("Chyba při ukládání na cloud:", err);
             }
         };
+
+        // Načtení pozice z cloudu
+        async function loadCloudProgress() {
+            if (!db || !currentUser) return;
+            try {
+                const docSnap = await getDoc(getUserSaveRef());
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (window.applyLoadedData) window.applyLoadedData(data);
+                } else {
+                    loadLocalProgress();
+                }
+            } catch (err) {
+                console.error("Chyba při načítání pozice:", err);
+                loadLocalProgress();
+            }
+        }
+
+        function saveLocalProgress() {
+            const nick = document.getElementById('player-nick').value.trim() || 'Anonym';
+            const localData = {
+                nick: nick,
+                coins: window.gameScore || 0,
+                clicks: window.gameClicks || 0,
+                cps: window.gameCps || 0,
+                clickPower: window.gameClickPower || 1,
+                upgrades: window.gameUpgradesState || []
+            };
+            localStorage.setItem('goon_game_save', JSON.stringify(localData));
+        }
+
+        function loadLocalProgress() {
+            try {
+                const raw = localStorage.getItem('goon_game_save');
+                if (raw && window.applyLoadedData) {
+                    window.applyLoadedData(JSON.parse(raw));
+                }
+            } catch (e) {}
+        }
 
         function renderLeaderboardUI(players) {
             const body = document.getElementById('leaderboard-body');
@@ -260,27 +336,75 @@
         function escapeHtml(str) {
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
+
+        // Automatické ukládání každých 10 sekund
+        setInterval(() => {
+            if (window.gameScore > 0 && window.saveGameProgress) {
+                window.saveGameProgress();
+            }
+        }, 10000);
+
+        initFirebase();
     </script>
 
-    <!-- HERNÍ LOGIKA -->
+    <!-- HERNÍ LOGIKA & REPREZENTACE STAVU -->
     <script>
-        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrinkant","price":2000,"cps":80,"clickPower":15}]};
+        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15}]};
 
         let score = 0;
         let totalCps = 0;
         let clickPower = 1;
         let totalClicks = 0;
 
-        // Načtení upgradů z konfigurace
         const upgrades = config.upgrades.map(u => ({
             name: u.name,
+            basePrice: u.price,
             currentPrice: u.price,
             cps: u.cps,
             clickPower: u.clickPower || 0,
             count: 0
         }));
 
-        // UI elementy
+        // Zpřístupnění stavu pro automatické ukládání
+        function syncGlobalState() {
+            window.gameScore = score;
+            window.gameClicks = totalClicks;
+            window.gameCps = totalCps;
+            window.gameClickPower = clickPower;
+            window.gameUpgradesState = upgrades.map(u => ({ count: u.count, currentPrice: u.currentPrice }));
+        }
+
+        window.applyLoadedData = function(data) {
+            if (!data) return;
+            if (data.coins !== undefined) score = Number(data.coins) || 0;
+            if (data.clicks !== undefined) totalClicks = Number(data.clicks) || 0;
+            
+            if (data.nick) {
+                const nickInput = document.getElementById('player-nick');
+                if (nickInput) nickInput.value = data.nick;
+            }
+
+            if (data.upgrades && Array.isArray(data.upgrades)) {
+                data.upgrades.forEach((savedUpg, idx) => {
+                    if (upgrades[idx]) {
+                        upgrades[idx].count = savedUpg.count || 0;
+                        upgrades[idx].currentPrice = savedUpg.currentPrice || Math.ceil(upgrades[idx].basePrice * Math.pow(1.15, upgrades[idx].count));
+                    }
+                });
+            }
+
+            totalCps = 0;
+            clickPower = 1;
+            upgrades.forEach(u => {
+                totalCps += u.count * u.cps;
+                clickPower += (u.count * u.clickPower);
+            });
+
+            syncGlobalState();
+            updateUI();
+        };
+
+        // Nastavení prvků
         document.getElementById('header-emoji').textContent = config.emoji;
         document.getElementById('main-click-btn').textContent = config.emoji;
         document.getElementById('currency-label').textContent = config.currency;
@@ -292,12 +416,11 @@
 
         const fmt = (n) => Math.floor(n).toLocaleString('cs-CZ');
 
-        // Vykreslení obchodu
         function renderShop() {
             shopUI.innerHTML = '';
             upgrades.forEach((u, i) => {
                 const btn = document.createElement('button');
-                btn.className = 'w-full bg-slate-800 hover:bg-slate-700/80 disabled:opacity-40 disabled:hover:bg-slate-800 p-3.5 rounded-xl border border-slate-700/80 text-left transition flex items-center justify-between group';
+                btn.className = 'w-full bg-slate-800 hover:bg-slate-700/80 disabled:opacity-40 disabled:hover:bg-slate-800 p-3.5 rounded-xl border border-slate-700/80 text-left transition flex items-center justify-between group cursor-pointer';
                 btn.id = 'upg-btn-' + i;
                 btn.onclick = () => buyUpgrade(i);
                 
@@ -340,15 +463,14 @@
                 clickPower += u.clickPower;
                 u.count++;
                 u.currentPrice = Math.ceil(u.currentPrice * 1.15);
+                syncGlobalState();
                 updateUI();
             }
         }
 
-        // Efekty explozí
         function triggerExplosion(milestoneConfig, particleCount) {
             const { text, color } = milestoneConfig;
 
-            // Zobrazení velkého textu
             const banner = document.createElement('div');
             banner.className = 'milestone-banner';
             banner.textContent = text;
@@ -356,7 +478,6 @@
             document.body.appendChild(banner);
             setTimeout(() => banner.remove(), 2600);
 
-            // Generování částic
             const centerX = window.innerWidth / 2;
             const centerY = window.innerHeight / 2;
 
@@ -383,12 +504,10 @@
             }
         }
 
-        // Klikací akce
         document.getElementById('main-click-btn').addEventListener('click', (e) => {
             score += clickPower;
             totalClicks++;
 
-            // Létající číslice
             const floatEl = document.createElement('div');
             floatEl.className = 'float-text';
             floatEl.textContent = '+' + fmt(clickPower);
@@ -403,42 +522,26 @@
             document.body.appendChild(floatEl);
             setTimeout(() => floatEl.remove(), 800);
 
-            // Kontrola milníků
             if (totalClicks === 10) {
                 triggerExplosion(config.milestone10, 60);
             } else if (totalClicks === 100) {
                 triggerExplosion(config.milestone100, 160);
             }
 
+            syncGlobalState();
             updateUI();
         });
 
-        // Automatický zisk za sekundu
         setInterval(() => {
             if (totalCps > 0) {
                 score += totalCps;
+                syncGlobalState();
                 updateUI();
             }
         }, 1000);
 
-        // Záchrana přezdívky a odeslání do žebříčku
-        const nickInput = document.getElementById('player-nick');
-        nickInput.value = localStorage.getItem('goon_nick') || '';
-
-        document.getElementById('save-score-btn').addEventListener('click', () => {
-            const nick = nickInput.value.trim() || 'Anonym';
-            localStorage.setItem('goon_nick', nick);
-
-            if (window.submitOnlineScore) {
-                window.submitOnlineScore(nick, score, totalClicks);
-                const btn = document.getElementById('save-score-btn');
-                btn.textContent = '✅ Uloženo!';
-                setTimeout(() => btn.textContent = 'Uložit mé skóre', 2000);
-            }
-        });
-
-        // Start
         renderShop();
+        syncGlobalState();
         updateUI();
     </script>
 </body>
