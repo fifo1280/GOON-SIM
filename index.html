@@ -207,6 +207,47 @@
         window.setDoc = setDoc;
         window.collection = collection;
 
+
+                async function cloudRegister() {
+    const user = document.getElementById('auth-user').value.trim();
+    const pass = document.getElementById('auth-pass').value.trim();
+    
+    if (!user || !pass) {
+        alert("Zadej uživatelské jméno i heslo!");
+        return;
+    }
+
+    try {
+        const docRef = doc(db, "users", user);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            alert("Tento účet již existuje! Zvol jiné jméno nebo se přihlas.");
+            return;
+        }
+
+        const initialData = {
+            password: pass,
+            coins: window.gameScore || 0,
+            clicks: window.gameClicks || 0,
+            cps: window.gameCps || 0,
+            clickPower: window.gameClickPower || 1,
+            upgrades: window.gameUpgradesState || [],
+            updatedAt: Date.now()
+        };
+
+        await setDoc(docRef, initialData);
+        alert("Účet byl úspěšně vytvořen a data uložena!");
+        
+        localStorage.setItem('game_logged_user', user);
+        updateAuthUI(user);
+    } catch (e) {
+        console.error("Chyba při registraci: ", e);
+        alert("Chyba při vytváření účtu: " + e.message);
+    }
+}
+
+                
                         const app = initializeApp(JSON.parse(customConfigStr));
         const db = getFirestore(app);
 
@@ -565,66 +606,8 @@
             }
         }
 
-     async function cloudRegister() {
-    const user = document.getElementById('auth-user').value.trim();
-    const pass = document.getElementById('auth-pass').value.trim();
-    
-    if (!user || !pass) {
-        alert("Zadej uživatelské jméno i heslo!");
-        return;
-    }
-
-    try {
-        const docRef = doc(db, "users", user);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-            alert("Tento účet již existuje! Zvol jiné jméno nebo se přihlas.");
-            return;
-        }
-
-        const initialData = {
-            password: pass,
-            coins: window.gameScore || 0,
-            clicks: window.gameClicks || 0,
-            cps: window.gameCps || 0,
-            clickPower: window.gameClickPower || 1,
-            upgrades: window.gameUpgradesState || [],
-            updatedAt: Date.now()
-        };
-
-        await setDoc(docRef, initialData);
-        alert("Účet byl úspěšně vytvořen a data uložena!");
-        
-        localStorage.setItem('game_logged_user', user);
-        updateAuthUI(user);
-    } catch (e) {
-        console.error("Chyba při registraci: ", e);
-        alert("Chyba při vytváření účtu: " + e.message);
-    }
-}
 
 
-
-function cloudLogout() {
-    localStorage.removeItem('game_logged_user');
-    document.getElementById('auth-logged-out').classList.remove('hidden');
-    document.getElementById('auth-logged-in').classList.add('hidden');
-    alert("Byl jsi odhlášen.");
-}
-
-function updateAuthUI(username) {
-    document.getElementById('auth-logged-out').classList.add('hidden');
-    document.getElementById('auth-logged-in').classList.remove('hidden');
-    document.getElementById('current-username').textContent = username;
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-    const savedUser = localStorage.getItem('game_logged_user');
-    if (savedUser) {
-        updateAuthUI(savedUser);
-    }
-});
 
 
         document.getElementById('main-click-btn').addEventListener('click', (e) => {
