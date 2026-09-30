@@ -124,6 +124,23 @@
                 </button>
             </div>
 
+            <div id="auth-panel" class="bg-slate-800 p-4 rounded-lg border border-slate-700 my-4 text-center">
+    <h3 class="text-white font-bold mb-2">☁️ Cloudové uložení (Účet)</h3>
+    <div id="auth-logged-out" class="space-y-2">
+        <input type="text" id="auth-user" placeholder="Uživatelské jméno" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
+        <input type="password" id="auth-pass" placeholder="Heslo" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
+        <div class="flex gap-2">
+            <button onclick="cloudRegister()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-3 rounded text-sm transition">Vytvořit účet</button>
+            <button onclick="cloudLogin()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded text-sm transition">Přihlásit se</button>
+        </div>
+    </div>
+    <div id="auth-logged-in" class="hidden space-y-2">
+        <p class="text-sm text-emerald-400">Přihlášen jako: <span id="current-username" class="font-bold"></span></p>
+        <button onclick="cloudLogout()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-3 rounded text-sm transition">Odhlásit se</button>
+    </div>
+</div>
+
+
             <!-- Tabulka TOP Hráčů -->
             <div class="flex-1 overflow-y-auto pr-1">
                 <table class="w-full text-left text-xs">
@@ -200,7 +217,7 @@
                 loadLocalProgress();
             }
         }
-
+        
         // Cesty podle Pravidla 1
         function getLeaderboardRef() {
             return collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
@@ -530,6 +547,105 @@
                 setTimeout(() => p.remove(), 1200);
             }
         }
+
+        async function cloudRegister() {
+    const user = document.getElementById('auth-user').value.trim();
+    const pass = document.getElementById('auth-pass').value.trim();
+    
+    if (!user || !pass) {
+        alert("Zadej uživatelské jméno i heslo!");
+        return;
+    }
+
+    try {
+        const docRef = doc(db, "users", user);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            alert("Tento účet již existuje! Zvol jiné jméno nebo se přihlas.");
+            return;
+        }
+
+        const initialData = {
+            password: pass,
+            coins: window.gameScore || 0,
+            clicks: window.gameClicks || 0,
+            cps: window.gameCps || 0,
+            clickPower: window.gameClickPower || 1,
+            upgrades: window.gameUpgradesState || [],
+            updatedAt: Date.now()
+        };
+
+        await setDoc(docRef, initialData);
+        alert("Účet byl úspěšně vytvořen a data uložena!");
+        
+        localStorage.setItem('game_logged_user', user);
+        updateAuthUI(user);
+    } catch (e) {
+        console.error("Chyba při registraci: ", e);
+        alert("Chyba při vytváření účtu.");
+    }
+}
+
+async function cloudLogin() {
+    const user = document.getElementById('auth-user').value.trim();
+    const pass = document.getElementById('auth-pass').value.trim();
+    
+    if (!user || !pass) {
+        alert("Zadej uživatelské jméno i heslo!");
+        return;
+    }
+
+    try {
+        const docRef = doc(db, "users", user);
+        const docSnap = await getDoc(docRef);
+        
+        if (!docSnap.exists()) {
+            alert("Účet s tímto jménem neexistuje.");
+            return;
+        }
+
+        const userData = docSnap.data();
+        
+        if (userData.password !== pass) {
+            alert("Nesprávné heslo!");
+            return;
+        }
+
+        alert("Přihlášení úspěšné! Data byla načtena.");
+        localStorage.setItem('game_logged_user', user);
+        
+        if (window.applyLoadedData) {
+            window.applyLoadedData(userData);
+        }
+        
+        updateAuthUI(user);
+    } catch (e) {
+        console.error("Chyba při přihlášení: ", e);
+        alert("Chyba při přihlašování.");
+    }
+}
+
+function cloudLogout() {
+    localStorage.removeItem('game_logged_user');
+    document.getElementById('auth-logged-out').classList.remove('hidden');
+    document.getElementById('auth-logged-in').classList.add('hidden');
+    alert("Byl jsi odhlášen.");
+}
+
+function updateAuthUI(username) {
+    document.getElementById('auth-logged-out').classList.add('hidden');
+    document.getElementById('auth-logged-in').classList.remove('hidden');
+    document.getElementById('current-username').textContent = username;
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const savedUser = localStorage.getItem('game_logged_user');
+    if (savedUser) {
+        updateAuthUI(savedUser);
+    }
+});
+
 
         document.getElementById('main-click-btn').addEventListener('click', (e) => {
             score += clickPower;
