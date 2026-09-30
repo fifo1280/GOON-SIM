@@ -292,17 +292,18 @@
         }
 
         function saveLocalProgress() {
-            const nick = document.getElementById('player-nick').value.trim() || 'Anonym';
-            const localData = {
-                nick: nick,
-                coins: window.gameScore || 0,
-                clicks: window.gameClicks || 0,
-                cps: window.gameCps || 0,
-                clickPower: window.gameClickPower || 1,
-                upgrades: window.gameUpgradesState || []
-            };
-            localStorage.setItem('goon_game_save', JSON.stringify(localData));
-        }
+    const nick = document.getElementById('player-nick').value.trim() || 'Anonym';
+    const localData = {
+        nick: nick,
+        coins: window.gameScore || 0,
+        clicks: window.gameClicks || 0,
+        cps: window.gameCps || 0,
+        clickPower: window.gameClickPower || 1,
+        upgrades: window.gameUpgradesState || [],
+        updatedAt: Date.now()
+    };
+    localStorage.setItem('goon_game_save', JSON.stringify(localData));
+}
 
         function loadLocalProgress() {
             try {
@@ -375,34 +376,60 @@
         }
 
         window.applyLoadedData = function(data) {
-            if (!data) return;
-            if (data.coins !== undefined) score = Number(data.coins) || 0;
-            if (data.clicks !== undefined) totalClicks = Number(data.clicks) || 0;
+    if (!data) return;
+    if (data.coins !== undefined) score = Number(data.coins) || 0;
+    if (data.clicks !== undefined) totalClicks = Number(data.clicks) || 0;
+    
+    if (data.nick) {
+        const nickInput = document.getElementById('player-nick');
+        if (nickInput) nickInput.value = data.nick;
+    }
+
+    if (data.upgrades && Array.isArray(data.upgrades)) {
+        data.upgrades.forEach((savedUpg, idx) => {
+            if (upgrades[idx]) {
+                upgrades[idx].count = savedUpg.count || 0;
+                upgrades[idx].currentPrice = savedUpg.currentPrice || Math.ceil(upgrades[idx].basePrice * Math.pow(1.15, upgrades[idx].count));
+            }
+        });
+    }
+
+    totalCps = 0;
+    clickPower = 1;
+    upgrades.forEach(u => {
+        totalCps += u.count * u.cps;
+        clickPower += (u.count * u.clickPower);
+    });
+
+    // Spočítání offline výdělku (1% z CPS za každou sekundu pryč)
+    if (data.updatedAt && totalCps > 0) {
+        const now = Date.now();
+        const secondsOffline = Math.floor((now - data.updatedAt) / 1000);
+        
+        if (secondsOffline >= 10) {
+            const maxOfflineSecs = Math.min(secondsOffline, 86400); // Max 24 hodin
+            const offlineEarnings = Math.floor(maxOfflineSecs * totalCps * 0.01);
             
-            if (data.nick) {
-                const nickInput = document.getElementById('player-nick');
-                if (nickInput) nickInput.value = data.nick;
+            if (offlineEarnings > 0) {
+                score += offlineEarnings;
+                setTimeout(() => {
+                    const hours = Math.floor(maxOfflineSecs / 3600);
+                    const mins = Math.floor((maxOfflineSecs % 3600) / 60);
+                    const secs = maxOfflineSecs % 60;
+                    let timeText = "";
+                    if (hours > 0) timeText += hours + "h ";
+                    if (mins > 0) timeText += mins + "m ";
+                    timeText += secs + "s";
+
+                    alert("🌙 Vítej zpět!\n\nZatímco jsi byl pryč (" + timeText + "), tvá vylepšení ti pasivně vydělala (1% offline bonus):\n+" + offlineEarnings.toLocaleString('cs-CZ') + " " + config.currency + "!");
+                }, 600);
             }
+        }
+    }
 
-            if (data.upgrades && Array.isArray(data.upgrades)) {
-                data.upgrades.forEach((savedUpg, idx) => {
-                    if (upgrades[idx]) {
-                        upgrades[idx].count = savedUpg.count || 0;
-                        upgrades[idx].currentPrice = savedUpg.currentPrice || Math.ceil(upgrades[idx].basePrice * Math.pow(1.15, upgrades[idx].count));
-                    }
-                });
-            }
-
-            totalCps = 0;
-            clickPower = 1;
-            upgrades.forEach(u => {
-                totalCps += u.count * u.cps;
-                clickPower += (u.count * u.clickPower);
-            });
-
-            syncGlobalState();
-            updateUI();
-        };
+    syncGlobalState();
+    updateUI();
+};
 
         // Nastavení prvků
         document.getElementById('header-emoji').textContent = config.emoji;
