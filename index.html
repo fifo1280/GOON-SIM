@@ -85,7 +85,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, linkWithRedirect, signInWithRedirect, getRedirectResult, signInWithCredential, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, runTransaction, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBlsK8qClnYEyKco0Z2TZ83kuDpSrB4B8g",
@@ -326,7 +326,7 @@
 
     <!-- HERNÍ LOGIKA -->
     <script>
-        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":1000000000,"cps":100000,"clickPower":10000}]};
+        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":1000000000,"cps":100000,"clickPower":10000}]};
 
         // ===== LIMITOVANÉ DROPY =====
         // Každých intervalMin minut se objeví drop a je k dispozici durationSec sekund.
