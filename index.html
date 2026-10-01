@@ -47,6 +47,15 @@
 
         <section class="lg:col-span-4 border-b lg:border-b-0 lg:border-r border-slate-800 p-6 bg-slate-900/60 overflow-y-auto">
             <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-2"><span>🛒</span> Vylepšení & Obchod</h2>
+            <!-- ŠABLONA: LIMITOVANÝ DROP (obsah se plní z JS, viz limitedDrops) -->
+            <div id="drop-box" class="mb-4 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 to-purple-950/40 p-4">
+                <div class="flex items-center justify-between text-[11px] uppercase tracking-wider text-amber-300 font-bold">
+                    <span>⚡ Limitovaný drop</span>
+                    <span id="drop-timer">--:--</span>
+                </div>
+                <div id="drop-body" class="mt-2 text-xs text-slate-400">Čekám na další drop...</div>
+            </div>
+
             <div id="shop-list" class="space-y-3"></div>
         </section>
 
@@ -76,7 +85,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, linkWithRedirect, signInWithRedirect, getRedirectResult, signInWithCredential, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBlsK8qClnYEyKco0Z2TZ83kuDpSrB4B8g",
@@ -108,6 +117,7 @@
                 coins: Math.floor(window.gameScore || 0),
                 clicks: window.gameClicks || 0,
                 upgrades: window.gameUpgradesState || [],
+                limited: window.gameLimited || { owned: {}, slot: 0, slotBought: 0 },
                 updatedAt: Date.now()
             };
         }
@@ -282,6 +292,31 @@
             return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
 
+        // ===== LIMITOVANÝ DROP: globální sklad (sdílený mezi všemi hráči) =====
+        const dropRef = (slot) => doc(db, 'artifacts', APP_ID, 'public', 'data', 'drops', 'slot_' + slot);
+
+        // Sleduje, kolik kusů už se prodalo. Vrací funkci pro odhlášení, nebo null když cloud ještě není ready.
+        window.watchDrop = (slot, cb) => {
+            if (!db || !currentUser) return null;
+            return onSnapshot(dropRef(slot), (s) => cb(s.exists() ? (s.data().sold || 0) : 0), (e) => console.warn('Drop:', e.code));
+        };
+
+        // Atomicky koupí 1 kus. true = koupeno, false = vyprodáno, null = chyba / cloud nedostupný
+        window.buyDropGlobal = async (slot, stock) => {
+            if (!db || !currentUser) return null;
+            try {
+                return await runTransaction(db, async (tx) => {
+                    const ref = dropRef(slot);
+                    const s = await tx.get(ref);
+                    const sold = s.exists() ? (s.data().sold || 0) : 0;
+                    if (sold >= stock) return false;
+                    if (s.exists()) tx.update(ref, { sold: sold + 1 });
+                    else tx.set(ref, { sold: 1, stock: stock });
+                    return true;
+                });
+            } catch (e) { console.error('Nákup dropu:', e); return null; }
+        };
+
         setInterval(() => { if (window.saveGameProgress) window.saveGameProgress(false); }, 10000);
         document.addEventListener('visibilitychange', () => { if (document.hidden && loaded) { saveLocal(); window.saveGameProgress(false); } });
         window.addEventListener('pagehide', () => { if (loaded) saveLocal(); });
@@ -291,9 +326,26 @@
 
     <!-- HERNÍ LOGIKA -->
     <script>
-        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":1000000000,"cps":100000,"clickPower":10000}]};
+        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":1000000000,"cps":100000,"clickPower":10000}]};
+
+        // ===== LIMITOVANÉ DROPY =====
+        // Každých intervalMin minut se objeví drop a je k dispozici durationSec sekund.
+        const DROP = { intervalMin: 10, durationSec: 180 };
+
+        // JAK PŘIDAT NOVÝ DROP: zkopíruj jeden řádek, změň id (unikátní!), jméno a čísla.
+        //   id           – unikátní, nikdy neměň u existujícího dropu (podle něj se ukládá vlastnictví)
+        //   stock        – kolik kusů je celkem pro VŠECHNY hráče (0 = neomezeně)
+        //   maxPerPlayer – kolik kusů si může koupit jeden hráč během jednoho dropu
+        //   cps/clickPower – trvalý bonus za každý koupený kus
+        // Dropy se střídají popořadě (1., 2., 3., ... a znovu od začátku).
+        const limitedDrops = [
+            { id: 'sexy-prádelko',  emoji: '👔', name: 'Sexy prádelko',   price: 5000000,   cps: 900000,  clickPower: 90000, stock: 10, maxPerPlayer: 1000000 },
+            { id: 'masturbacni-rukavice',  emoji: '✋', name: 'Masturbační rukavice', price: 200000,  cps: 120000, clickPower: 50000, stock: 5, maxPerPlayer: 100000 },
+            { id: 'masturbator-natuszkovebaterie',  emoji: '🔋', name: 'Masturbátor na tužkové baterky', price: 1000000, cps: 600000, clickPower: 200000, stock: 2, maxPerPlayer: 1000000 }
+        ];
 
         let score = 0, totalCps = 0, clickPower = 1, totalClicks = 0;
+        let limited = { owned: {}, slot: 0, slotBought: 0 };
 
         const upgrades = config.upgrades.map(u => ({
             name: u.name, basePrice: u.price, currentPrice: u.price,
@@ -305,6 +357,7 @@
             window.gameClicks = totalClicks;
             window.gameCps = totalCps;
             window.gameClickPower = clickPower;
+            window.gameLimited = limited;
             window.gameUpgradesState = upgrades.map(u => ({ count: u.count, currentPrice: u.currentPrice }));
         }
 
@@ -329,7 +382,11 @@
 
             totalCps = 0;
             clickPower = 1;
+            if (data.limited && data.limited.owned) {
+                limited = { owned: data.limited.owned, slot: data.limited.slot || 0, slotBought: data.limited.slotBought || 0 };
+            }
             upgrades.forEach(u => { totalCps += u.count * u.cps; clickPower += u.count * u.clickPower; });
+            limitedDrops.forEach(d => { const c = limited.owned[d.id] || 0; totalCps += c * d.cps; clickPower += c * d.clickPower; });
 
             // Offline výdělek (1 % CPS za sekundu, max 24 h)
             if (data.updatedAt && totalCps > 0) {
@@ -386,6 +443,7 @@
             scoreUI.textContent = fmt(score);
             cpsUI.textContent = '+' + fmt(totalCps) + ' ' + config.currency + '/s';
             clicksUI.textContent = fmt(totalClicks);
+            if (typeof refreshDrop === 'function') refreshDrop();
             upgrades.forEach((u, i) => {
                 const btn = document.getElementById('upg-btn-' + i);
                 if (btn) {
@@ -462,6 +520,99 @@
         setInterval(() => {
             if (totalCps > 0) { score += totalCps; syncGlobalState(); updateUI(); }
         }, 1000);
+
+        // ===== LOGIKA LIMITOVANÉHO DROPU =====
+        // Všichni online vidí stejný drop: odvozuje se z aktuálního času (okno po 10 minutách).
+        const byId = (id) => document.getElementById(id);
+        const mmss = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+        let dropState = { slot: null, def: null, remaining: null, unwatch: null };
+        let dropBusy = false;
+
+        const boughtThisSlot = () => (limited.slot === dropState.slot ? limited.slotBought : 0);
+
+        function startDrop(slot) {
+            endDrop();
+            const def = limitedDrops[slot % limitedDrops.length];
+            dropState = { slot, def, remaining: def.stock || null, unwatch: null };
+            byId('drop-body').innerHTML =
+                '<div class="flex items-center justify-between gap-3">' +
+                  '<div class="text-3xl">' + def.emoji + '</div>' +
+                  '<div class="flex-1"><div class="font-bold text-sm text-white">' + def.name + '</div>' +
+                  '<div class="text-xs text-purple-400">+' + fmt(def.cps) + '/s | +' + fmt(def.clickPower) + '/klik</div>' +
+                  '<div class="text-[11px] text-slate-400 mt-0.5" id="drop-stock"></div></div>' +
+                  '<button id="drop-buy" onclick="buyDrop()" class="bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:hover:bg-amber-500 text-slate-950 font-black text-xs px-3 py-2 rounded-lg active:scale-95 transition">Koupit<br>' + fmt(def.price) + '</button>' +
+                '</div>';
+            triggerExplosion({ text: '⚡ NOVÝ DROP!', color: '#fbbf24' }, 40);
+            refreshDrop();
+        }
+
+        function endDrop() {
+            if (dropState.unwatch) { try { dropState.unwatch(); } catch (e) {} }
+            dropState = { slot: null, def: null, remaining: null, unwatch: null };
+            const b = byId('drop-body');
+            if (b) b.textContent = 'Čekám na další drop...';
+        }
+
+        function refreshDrop() {
+            const def = dropState.def;
+            if (!def) return;
+            const stockEl = byId('drop-stock'), btn = byId('drop-buy');
+            if (!stockEl || !btn) return;
+            const mine = boughtThisSlot();
+            const soldOut = def.stock > 0 && dropState.remaining === 0;
+            stockEl.textContent = (def.stock > 0 ? 'Zbývá: ' + (dropState.remaining === null ? '…' : dropState.remaining) + ' / ' + def.stock : 'Neomezeně') +
+                ' | Tvoje: ' + mine + ' / ' + def.maxPerPlayer;
+            btn.disabled = dropBusy || soldOut || mine >= def.maxPerPlayer || score < def.price;
+            if (soldOut) btn.innerHTML = 'Vyprodáno';
+        }
+
+        async function buyDrop() {
+            const def = dropState.def;
+            if (!def || dropBusy || score < def.price || boughtThisSlot() >= def.maxPerPlayer) return;
+            dropBusy = true; refreshDrop();
+            try {
+                if (def.stock > 0) {
+                    const ok = window.buyDropGlobal ? await window.buyDropGlobal(dropState.slot, def.stock) : null;
+                    if (ok === false) { dropState.remaining = 0; alert('Vyprodáno! 😢'); return; }
+                    if (ok === null) { alert('Nákup se nepovedl (cloud není dostupný). Zkus to za chvíli.'); return; }
+                }
+                if (score < def.price) return; // mezitím se změnil zůstatek
+                score -= def.price;
+                limited.owned[def.id] = (limited.owned[def.id] || 0) + 1;
+                limited.slot = dropState.slot;
+                limited.slotBought = boughtThisSlot() + 1;
+                totalCps += def.cps;
+                clickPower += def.clickPower;
+                syncGlobalState();
+                updateUI();
+                if (window.saveGameProgress) window.saveGameProgress(false);
+            } finally {
+                dropBusy = false; refreshDrop();
+            }
+        }
+
+        function tickDrop() {
+            const ms = DROP.intervalMin * 60000, now = Date.now();
+            const slot = Math.floor(now / ms), start = slot * ms;
+            const active = now - start < DROP.durationSec * 1000;
+            const timer = byId('drop-timer');
+            if (!active) {
+                if (dropState.slot !== null) endDrop();
+                timer.textContent = 'další za ' + mmss(start + ms - now);
+                return;
+            }
+            if (dropState.slot !== slot) startDrop(slot);
+            timer.textContent = 'zbývá ' + mmss(start + DROP.durationSec * 1000 - now);
+            // napojení na globální sklad, jakmile je cloud připravený
+            if (dropState.def.stock > 0 && !dropState.unwatch && window.watchDrop) {
+                dropState.unwatch = window.watchDrop(slot, (sold) => {
+                    dropState.remaining = Math.max(0, dropState.def.stock - sold);
+                    refreshDrop();
+                });
+            }
+        }
+        setInterval(tickDrop, 1000);
+        tickDrop();
 
         renderShop();
         syncGlobalState();
