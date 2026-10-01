@@ -73,7 +73,7 @@
     <!-- FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, linkWithRedirect, signInWithRedirect, getRedirectResult, signInWithCredential, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -122,6 +122,18 @@
                 setStatus('⚠️ Pouze lokální paměť');
                 useLocalOnly();
                 return;
+            }
+
+            // Výsledek přesměrování z Google (mobil)
+            try {
+                await getRedirectResult(auth);
+            } catch (err) {
+                if (err.code === 'auth/credential-already-in-use' || err.code === 'auth/email-already-in-use') {
+                    const cred = GoogleAuthProvider.credentialFromError(err);
+                    try { if (cred) await signInWithCredential(auth, cred); } catch (e) { console.error(e); }
+                } else {
+                    console.error('Redirect chyba:', err);
+                }
             }
 
             // Listener se registruje PŘED přihlášením
@@ -202,8 +214,10 @@
             }
         };
 
+        let loginBusy = false;
         window.googleLogin = async function () {
-            if (!auth) return;
+            if (!auth || loginBusy) return;
+            loginBusy = true;
             const provider = new GoogleAuthProvider();
             try {
                 if (auth.currentUser && auth.currentUser.isAnonymous) {
@@ -215,11 +229,24 @@
                 }
             } catch (err) {
                 if (err.code === 'auth/credential-already-in-use' || err.code === 'auth/email-already-in-use') {
-                    // Google účet už existuje -> přihlásit se do něj
-                    try { await signInWithPopup(auth, provider); } catch (e) { alert('Přihlášení selhalo: ' + e.code); }
-                } else if (err.code !== 'auth/popup-closed-by-user') {
+                    // Google účet už existuje -> přihlásit se do něj bez druhého popupu
+                    const cred = GoogleAuthProvider.credentialFromError(err);
+                    try {
+                        await signInWithCredential(auth, cred);
+                        location.reload();
+                    } catch (e) { alert('Přihlášení selhalo: ' + e.code); }
+                } else if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
+                    // Mobil: popup je blokovaný -> přesměrování
+                    try {
+                        await window.saveGameProgress(false);
+                        if (auth.currentUser && auth.currentUser.isAnonymous) await linkWithRedirect(auth.currentUser, provider);
+                        else await signInWithRedirect(auth, provider);
+                    } catch (e) { alert('Přihlášení selhalo: ' + e.code); }
+                } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
                     alert('Přihlášení selhalo: ' + err.code + (err.code === 'auth/unauthorized-domain' ? '\nPřidej doménu do Firebase → Authentication → Settings → Authorized domains.' : ''));
                 }
+            } finally {
+                loginBusy = false;
             }
         };
 
