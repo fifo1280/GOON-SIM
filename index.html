@@ -9,439 +9,264 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        
-        .click-emoji {
-            transition: transform 0.08s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            filter: drop-shadow(0 15px 25px rgba(168, 85, 247, 0.3));
-        }
-        .click-emoji:active {
-            transform: scale(0.82) rotate(-3deg);
-        }
-        
-        .float-text {
-            position: absolute;
-            pointer-events: none;
-            font-weight: 800;
-            font-size: 1.5rem;
-            color: #facc15;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-            animation: floatUp 0.8s ease-out forwards;
-            z-index: 50;
-        }
-        @keyframes floatUp {
-            0% { opacity: 1; transform: translateY(0) scale(1); }
-            100% { opacity: 0; transform: translateY(-60px) scale(1.4); }
-        }
-
-        .milestone-banner {
-            position: fixed;
-            top: 40%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 3rem;
-            font-weight: 900;
-            text-align: center;
-            z-index: 100;
-            pointer-events: none;
-            animation: popText 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            text-shadow: 0 0 30px rgba(0,0,0,0.9);
-            width: 90%;
-        }
-        @keyframes popText {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
-            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
-        }
-
-        .particle {
-            position: fixed;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 90;
-            animation: explode 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
-        }
-        @keyframes explode {
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
-        }
+        .click-emoji { transition: transform 0.08s cubic-bezier(0.175, 0.885, 0.32, 1.275); filter: drop-shadow(0 15px 25px rgba(168, 85, 247, 0.3)); }
+        .click-emoji:active { transform: scale(0.82) rotate(-3deg); }
+        .float-text { position: absolute; pointer-events: none; font-weight: 800; font-size: 1.5rem; color: #facc15; text-shadow: 0 2px 8px rgba(0,0,0,0.8); animation: floatUp 0.8s ease-out forwards; z-index: 50; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-60px) scale(1.4); } }
+        .milestone-banner { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; font-weight: 900; text-align: center; z-index: 100; pointer-events: none; animation: popText 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; text-shadow: 0 0 30px rgba(0,0,0,0.9); width: 90%; }
+        @keyframes popText { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } 80% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); } }
+        .particle { position: fixed; border-radius: 50%; pointer-events: none; z-index: 90; animation: explode 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+        @keyframes explode { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans select-none overflow-x-hidden">
 
-    <!-- Horní Lišta -->
     <header class="bg-slate-900 border-b border-slate-800 py-3 px-6 flex items-center justify-between shadow-lg">
         <div class="flex items-center gap-3">
             <span class="text-2xl" id="header-emoji">🗿</span>
             <h1 class="font-black text-xl bg-gradient-to-r from-purple-400 to-amber-300 bg-clip-text text-transparent">Gooning Simulator</h1>
         </div>
-        <div class="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300 flex items-center gap-2" id="status-badge">
-            <span id="status-indicator">🟡 Načítám Cloud...</span>
+        <div class="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300 max-w-[60%] truncate" id="status-badge">
+            <span id="status-indicator">🟡 Připojuji se...</span>
         </div>
     </header>
 
-    <!-- Hlavní Mřížka -->
     <main class="flex-1 grid grid-cols-1 lg:grid-cols-12">
-        
-        <!-- LEVÝ SLOUPEC: Klikací Zóna -->
+
         <section class="lg:col-span-5 border-b lg:border-b-0 lg:border-r border-slate-800 p-6 flex flex-col items-center justify-center relative min-h-[380px] bg-gradient-to-b from-slate-950 via-purple-950/10 to-slate-950">
-            
-            <!-- Statistiky -->
             <div class="text-center mb-6 z-10">
                 <div class="text-sm uppercase tracking-wider text-slate-400 font-semibold mb-1" id="currency-label">Goon Coins</div>
                 <div class="text-5xl font-black text-amber-400 tracking-tight drop-shadow-md" id="score-val">0</div>
                 <div class="text-sm font-medium text-purple-400 mt-2 bg-purple-950/40 px-4 py-1 rounded-full border border-purple-800/40 inline-block" id="cps-val">+0 / sekundu</div>
                 <div class="text-xs text-slate-500 mt-2">Celkem naklikáno: <span id="clicks-val" class="font-bold text-slate-400">0</span></div>
             </div>
-
-            <!-- Tlačítko -->
             <button id="main-click-btn" class="click-emoji text-8xl md:text-9xl my-4 focus:outline-none cursor-pointer">🗿</button>
-
         </section>
 
-        <!-- PROSTŘEDNÍ SLOUPEC: Obchod s upgrady -->
         <section class="lg:col-span-4 border-b lg:border-b-0 lg:border-r border-slate-800 p-6 bg-slate-900/60 overflow-y-auto">
-            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-2">
-                <span>🛒</span> Vylepšení & Obchod
-            </h2>
-            <div id="shop-list" class="space-y-3">
-                <!-- Upgrady JS -->
-            </div>
+            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-2"><span>🛒</span> Vylepšení & Obchod</h2>
+            <div id="shop-list" class="space-y-3"></div>
         </section>
 
-        <!-- PRAVÝ SLOUPEC: Online Žebříček & Ukládání -->
         <section class="lg:col-span-3 p-6 bg-slate-950 flex flex-col">
-            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-2">
-                <span>🏆</span> Online Žebříček
-            </h2>
+            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-2"><span>🏆</span> Online Žebříček</h2>
 
-            <!-- Formulář pro zápis a ukládání -->
             <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 mb-4 space-y-3 shadow-md">
                 <label class="block text-xs text-slate-400">Tvoje Přezdívka:</label>
-                <input type="text" id="player-nick" placeholder="Zadej jméno..." maxlength="15" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-purple-500 outline-none">
-                <button id="save-score-btn" onclick="if(window.saveGameProgress) window.saveGameProgress();" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 px-3 rounded-lg text-xs uppercase tracking-wider transition shadow-md active:scale-95">
-                    💾 Uložit pozici & skóre
-                </button>
+                <input type="text" id="player-nick" placeholder="Zadej jméno..." maxlength="15" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-purple-500 outline-none select-text">
+                <button id="save-score-btn" onclick="window.saveGameProgress && window.saveGameProgress(true)" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 px-3 rounded-lg text-xs uppercase tracking-wider transition shadow-md active:scale-95">💾 Uložit pozici & skóre</button>
+                <button id="google-btn" onclick="window.googleLogin && window.googleLogin()" class="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-2 px-3 rounded-lg text-xs transition active:scale-95">🔐 Přihlásit přes Google</button>
+                <button id="logout-btn" onclick="window.googleLogout && window.googleLogout()" class="hidden w-full bg-slate-700 hover:bg-slate-600 text-white py-2 px-3 rounded-lg text-xs transition">Odhlásit</button>
             </div>
 
-            <div id="auth-panel" class="bg-slate-800 p-4 rounded-lg border border-slate-700 my-4 text-center">
-    <h3 class="text-white font-bold mb-2">☁️ Cloudové uložení (Účet)</h3>
-    <div id="auth-logged-out" class="space-y-2">
-        <input type="text" id="auth-user" placeholder="Uživatelské jméno" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
-        <input type="password" id="auth-pass" placeholder="Heslo" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
-        <div class="flex gap-2">
-            <button onclick="cloudRegister()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-3 rounded text-sm transition">Vytvořit účet</button>
-            <button onclick="cloudLogin()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded text-sm transition">Přihlásit se</button>
-        </div>
-    </div>
-    <div id="auth-logged-in" class="hidden space-y-2">
-        <p class="text-sm text-emerald-400">Přihlášen jako: <span id="current-username" class="font-bold"></span></p>
-        <button onclick="cloudLogout()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-3 rounded text-sm transition">Odhlásit se</button>
-    </div>
-</div>
-
-
-            <!-- Tabulka TOP Hráčů -->
             <div class="flex-1 overflow-y-auto pr-1">
                 <table class="w-full text-left text-xs">
-                    <thead>
-                        <tr class="text-slate-500 border-b border-slate-800 pb-1">
-                            <th class="py-2">#</th>
-                            <th class="py-2">Hráč</th>
-                            <th class="py-2 text-right">Měna</th>
-                        </tr>
-                    </thead>
+                    <thead><tr class="text-slate-500 border-b border-slate-800"><th class="py-2">#</th><th class="py-2">Hráč</th><th class="py-2 text-right">Měna</th></tr></thead>
                     <tbody id="leaderboard-body" class="divide-y divide-slate-800/60">
-                        <tr>
-                            <td colspan="3" class="py-4 text-center text-slate-500">Načítám žebříček...</td>
-                        </tr>
+                        <tr><td colspan="3" class="py-4 text-center text-slate-500">Načítám žebříček...</td></tr>
                     </tbody>
                 </table>
             </div>
         </section>
-
     </main>
 
-    <!-- FIREBASE FIRESTORE INTEGRACE -->
+    <!-- FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const customConfigStr = "{\n  \"apiKey\": \"AIzaSyBlsK8qClnYEyKco0Z2TZ83kuDpSrB4B8g\",\n  \"authDomain\": \"goon-sim.firebaseapp.com\",\n  \"projectId\": \"goon-sim\",\n  \"storageBucket\": \"goon-sim.firebasestorage.app\",\n  \"messagingSenderId\": \"627803499063\",\n  \"appId\": \"1:627803499063:web:b0b19c9da4e837dc10adb2\",\n  \"measurementId\": \"G-9FEPHLHVWB\"\n}";
-        let userCustomConfig = null;
-        if (customConfigStr) {
-            try { userCustomConfig = JSON.parse(customConfigStr); } catch(e) { console.warn("Neplatný custom Firebase JSON", e); }
-        }
-
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : userCustomConfig;
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'gooning-sim-v1';
-        
-        let app, db, auth, currentUser = null;
-
-        async function initFirebase() {
-            const statusIndicator = document.getElementById('status-indicator');
-
-            if (!firebaseConfig) {
-                if (statusIndicator) statusIndicator.innerHTML = '💾 Lokální zálohování (Pro GitHub vložte Firebase Config)';
-                loadLocalProgress();
-                return;
-            }
-
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                
-        const app = initializeApp(JSON.parse(customConfigStr));
-        const db = getFirestore(app);
-
-        // TADY TO PŘIDEJ: Vynutíme uložení do globálního okna, aby to viděl i zbytek stránek
-        window.db = db;
-        window.doc = doc;
-        window.getDoc = getDoc;
-        window.setDoc = setDoc;
-        window.collection = collection;
-
-
-                async function cloudRegister() {
-    const user = document.getElementById('auth-user').value.trim();
-    const pass = document.getElementById('auth-pass').value.trim();
-    
-    if (!user || !pass) {
-        alert("Zadej uživatelské jméno i heslo!");
-        return;
-    }
-
-    try {
-        const docRef = doc(db, "users", user);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-            alert("Tento účet již existuje! Zvol jiné jméno nebo se přihlas.");
-            return;
-        }
-
-        const initialData = {
-            password: pass,
-            coins: window.gameScore || 0,
-            clicks: window.gameClicks || 0,
-            cps: window.gameCps || 0,
-            clickPower: window.gameClickPower || 1,
-            upgrades: window.gameUpgradesState || [],
-            updatedAt: Date.now()
+        const firebaseConfig = {
+            apiKey: "AIzaSyBlsK8qClnYEyKco0Z2TZ83kuDpSrB4B8g",
+            authDomain: "goon-sim.firebaseapp.com",
+            projectId: "goon-sim",
+            storageBucket: "goon-sim.firebasestorage.app",
+            messagingSenderId: "627803499063",
+            appId: "1:627803499063:web:b0b19c9da4e837dc10adb2",
+            measurementId: "G-9FEPHLHVWB"
         };
+        const APP_ID = 'gooning-sim-v1';
 
-        await setDoc(docRef, initialData);
-        alert("Účet byl úspěšně vytvořen a data uložena!");
-        
-        localStorage.setItem('game_logged_user', user);
-        updateAuthUI(user);
-    } catch (e) {
-        console.error("Chyba při registraci: ", e);
-        alert("Chyba při vytváření účtu: " + e.message);
-    }
-}
+        const $ = (id) => document.getElementById(id);
+        const setStatus = (t) => { $('status-indicator').textContent = t; };
 
-                
-                        const app = initializeApp(JSON.parse(customConfigStr));
-        const db = getFirestore(app);
+        let db, auth, currentUser = null, unsubLb = null, loaded = false;
 
-        // TADY TO PŘIDEJ: Vynutíme uložení do globálního okna, aby to viděl i 
+        const lbCol = () => collection(db, 'artifacts', APP_ID, 'public', 'data', 'leaderboard');
+        const lbDoc = () => doc(db, 'artifacts', APP_ID, 'public', 'data', 'leaderboard', currentUser.uid);
+        const saveDoc = () => doc(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'saves', 'current');
 
-
-                // Autentizace podle pravidel
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        currentUser = user;
-                        if (statusIndicator) statusIndicator.innerHTML = '🟢 Cloud Ukládání & Žebříček Aktivní';
-                        listenToLeaderboard();
-                        await loadCloudProgress();
-                    }
-                });
-            } catch (err) {
-                console.warn("Chyba při připojení k Firebase:", err);
-                if (statusIndicator) statusIndicator.innerHTML = '⚠️ Pouze lokální paměť';
-                loadLocalProgress();
-            }
+        function readLocal() {
+            try { return JSON.parse(localStorage.getItem('goon_game_save')); } catch (e) { return null; }
         }
-        
-        // Cesty podle Pravidla 1
-        function getLeaderboardRef() {
-            return collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-        }
-
-        function getUserSaveRef() {
-            return doc(db, 'artifacts', appId, 'users', currentUser.uid, 'saves', 'current');
-        }
-
-        // Žebříček v reálném čase
-        function listenToLeaderboard() {
-            if (!db || !currentUser) return;
-            
-            try {
-                // Pravidlo 2: Jednoduché query bez orderBy, řazení v JS
-                onSnapshot(getLeaderboardRef(), (snapshot) => {
-                    const players = [];
-                    snapshot.forEach(d => {
-                        players.push({ id: d.id, ...d.data() });
-                    });
-
-                    players.sort((a, b) => (b.coins || 0) - (a.coins || 0));
-                    renderLeaderboardUI(players.slice(0, 15));
-                }, (error) => {
-                    console.error("Chyba načítání žebříčku:", error);
-                });
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        // Uložení hry do Firebase i lokální paměti
-        window.saveGameProgress = async function() {
-            saveLocalProgress();
-
-            if (!db || !currentUser) return;
-
-            const nick = document.getElementById('player-nick').value.trim() || 'Anonym';
-            localStorage.setItem('goon_nick', nick);
-
-            const stateData = {
-                nick: nick,
+        function buildState() {
+            return {
+                nick: $('player-nick').value.trim() || 'Anonym',
                 coins: Math.floor(window.gameScore || 0),
                 clicks: window.gameClicks || 0,
-                cps: window.gameCps || 0,
-                clickPower: window.gameClickPower || 1,
                 upgrades: window.gameUpgradesState || [],
                 updatedAt: Date.now()
             };
+        }
+        function saveLocal() {
+            try { localStorage.setItem('goon_game_save', JSON.stringify(buildState())); } catch (e) {}
+        }
 
+        async function initFirebase() {
             try {
-                // Uložení soukromého savu
-                await setDoc(getUserSaveRef(), stateData, { merge: true });
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+            } catch (err) {
+                console.error(err);
+                setStatus('⚠️ Pouze lokální paměť');
+                useLocalOnly();
+                return;
+            }
 
-                // Uložení veřejného skóre v žebříčku
-                const lbRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
-                await setDoc(lbRef, {
-                    nick: nick,
-                    coins: Math.floor(window.gameScore || 0),
-                    clicks: window.gameClicks || 0,
-                    updatedAt: Date.now()
-                }, { merge: true });
+            // Listener se registruje PŘED přihlášením
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    try { await signInAnonymously(auth); }
+                    catch (err) {
+                        console.error('Auth chyba:', err);
+                        const hint = err.code === 'auth/operation-not-allowed' ? 'Zapni Anonymous v Firebase Auth' :
+                                     err.code === 'auth/unauthorized-domain' ? 'Doména není povolená ve Firebase Auth' : err.code;
+                        setStatus('⚠️ Přihlášení selhalo: ' + hint);
+                        useLocalOnly();
+                    }
+                    return;
+                }
+                currentUser = user;
+                const isGoogle = !user.isAnonymous;
+                setStatus(isGoogle ? '🟢 ' + (user.displayName || user.email || 'Google účet') : '🟢 Cloud aktivní (anonymní účet)');
+                $('google-btn').classList.toggle('hidden', isGoogle);
+                $('logout-btn').classList.toggle('hidden', !isGoogle);
+                listenToLeaderboard();
+                await loadCloudProgress();
+            });
+        }
 
-                const btn = document.getElementById('save-score-btn');
-                if (btn) {
+        function useLocalOnly() {
+            const local = readLocal();
+            if (local && !loaded) window.applyLoadedData(local);
+            loaded = true;
+            renderLeaderboardUI([], 'Žebříček vyžaduje připojení ke cloudu.');
+        }
+
+        function listenToLeaderboard() {
+            if (unsubLb) unsubLb();
+            unsubLb = onSnapshot(lbCol(), (snap) => {
+                const players = [];
+                snap.forEach(d => players.push({ id: d.id, ...d.data() }));
+                players.sort((a, b) => (b.coins || 0) - (a.coins || 0));
+                renderLeaderboardUI(players.slice(0, 15));
+            }, (error) => {
+                console.error('Žebříček:', error);
+                renderLeaderboardUI([], '⚠️ Žebříček nelze načíst (' + error.code + '). Zkontroluj Firestore pravidla.');
+            });
+        }
+
+        async function loadCloudProgress() {
+            loaded = false;
+            let cloud = null;
+            try {
+                const snap = await getDoc(saveDoc());
+                if (snap.exists()) cloud = snap.data();
+            } catch (err) {
+                console.error('Načtení savu:', err);
+                setStatus('⚠️ Cloud save nedostupný (' + err.code + ')');
+            }
+            const local = readLocal();
+            const best = (cloud && local) ? ((cloud.updatedAt || 0) >= (local.updatedAt || 0) ? cloud : local) : (cloud || local);
+            if (best) window.applyLoadedData(best);
+            loaded = true;
+        }
+
+        window.saveGameProgress = async function (manual) {
+            if (!loaded) return;
+            saveLocal();
+            if (!db || !currentUser) return;
+            const s = buildState();
+            try {
+                await setDoc(saveDoc(), s, { merge: true });
+                await setDoc(lbDoc(), { nick: s.nick, coins: s.coins, clicks: s.clicks, updatedAt: s.updatedAt }, { merge: true });
+                if (manual) {
+                    const btn = $('save-score-btn');
                     btn.textContent = '✅ Uloženo do cloudu!';
                     setTimeout(() => btn.textContent = '💾 Uložit pozici & skóre', 2000);
                 }
             } catch (err) {
-                console.error("Chyba při ukládání na cloud:", err);
+                console.error('Ukládání:', err);
+                setStatus('⚠️ Uložení selhalo (' + err.code + ')');
             }
         };
 
-        // Načtení pozice z cloudu
-        async function loadCloudProgress() {
-            if (!db || !currentUser) return;
+        window.googleLogin = async function () {
+            if (!auth) return;
+            const provider = new GoogleAuthProvider();
             try {
-                const docSnap = await getDoc(getUserSaveRef());
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (window.applyLoadedData) window.applyLoadedData(data);
+                if (auth.currentUser && auth.currentUser.isAnonymous) {
+                    // Propojí anonymní účet s Googlem – postup zůstane zachován
+                    await linkWithPopup(auth.currentUser, provider);
+                    location.reload();
                 } else {
-                    loadLocalProgress();
+                    await signInWithPopup(auth, provider);
                 }
             } catch (err) {
-                console.error("Chyba při načítání pozice:", err);
-                loadLocalProgress();
-            }
-        }
-
-        function saveLocalProgress() {
-    const nick = document.getElementById('player-nick').value.trim() || 'Anonym';
-    const localData = {
-        nick: nick,
-        coins: window.gameScore || 0,
-        clicks: window.gameClicks || 0,
-        cps: window.gameCps || 0,
-        clickPower: window.gameClickPower || 1,
-        upgrades: window.gameUpgradesState || [],
-        updatedAt: Date.now()
-    };
-    localStorage.setItem('goon_game_save', JSON.stringify(localData));
-}
-
-        function loadLocalProgress() {
-            try {
-                const raw = localStorage.getItem('goon_game_save');
-                if (raw && window.applyLoadedData) {
-                    window.applyLoadedData(JSON.parse(raw));
+                if (err.code === 'auth/credential-already-in-use' || err.code === 'auth/email-already-in-use') {
+                    // Google účet už existuje -> přihlásit se do něj
+                    try { await signInWithPopup(auth, provider); } catch (e) { alert('Přihlášení selhalo: ' + e.code); }
+                } else if (err.code !== 'auth/popup-closed-by-user') {
+                    alert('Přihlášení selhalo: ' + err.code + (err.code === 'auth/unauthorized-domain' ? '\nPřidej doménu do Firebase → Authentication → Settings → Authorized domains.' : ''));
                 }
-            } catch (e) {}
-        }
+            }
+        };
 
-        function renderLeaderboardUI(players) {
-            const body = document.getElementById('leaderboard-body');
-            if (!body) return;
-            if (players.length === 0) {
-                body.innerHTML = '<tr><td colspan="3" class="py-4 text-center text-slate-500">Zatím žádné skóre. Buď první!</td></tr>';
+        window.googleLogout = async function () {
+            await window.saveGameProgress(false);
+            await signOut(auth);
+            location.reload();
+        };
+
+        function renderLeaderboardUI(players, msg) {
+            const body = $('leaderboard-body');
+            if (!players.length) {
+                body.innerHTML = '<tr><td colspan="3" class="py-4 text-center text-slate-500">' + escapeHtml(msg || 'Zatím žádné skóre. Buď první!') + '</td></tr>';
                 return;
             }
-
             body.innerHTML = players.map((p, idx) => {
                 const isMe = currentUser && p.id === currentUser.uid;
                 const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '.';
                 const rowClass = isMe ? 'bg-purple-950/40 font-bold text-amber-300' : 'text-slate-300';
-                return '<tr class="' + rowClass + ' hover:bg-slate-900 transition">' +
-                    '<td class="py-2.5 font-semibold">' + medal + '</td>' +
+                return '<tr class="' + rowClass + ' hover:bg-slate-900 transition"><td class="py-2.5 font-semibold">' + medal + '</td>' +
                     '<td class="py-2.5 truncate max-w-[110px]">' + escapeHtml(p.nick || 'Hráč') + '</td>' +
-                    '<td class="py-2.5 text-right font-mono text-amber-400">' + Math.floor(p.coins || 0).toLocaleString('cs-CZ') + '</td>' +
-                '</tr>';
+                    '<td class="py-2.5 text-right font-mono text-amber-400">' + Math.floor(p.coins || 0).toLocaleString('cs-CZ') + '</td></tr>';
             }).join('');
         }
 
         function escapeHtml(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
 
-        // Automatické ukládání každých 10 sekund
-        setInterval(() => {
-            if (window.gameScore > 0 && window.saveGameProgress) {
-                window.saveGameProgress();
-            }
-        }, 10000);
+        setInterval(() => { if (window.saveGameProgress) window.saveGameProgress(false); }, 10000);
+        document.addEventListener('visibilitychange', () => { if (document.hidden && loaded) { saveLocal(); window.saveGameProgress(false); } });
+        window.addEventListener('pagehide', () => { if (loaded) saveLocal(); });
 
         initFirebase();
     </script>
 
-    <!-- HERNÍ LOGIKA & REPREZENTACE STAVU -->
+    <!-- HERNÍ LOGIKA -->
     <script>
         const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600}]};
 
-        let score = 0;
-        let totalCps = 0;
-        let clickPower = 1;
-        let totalClicks = 0;
+        let score = 0, totalCps = 0, clickPower = 1, totalClicks = 0;
 
         const upgrades = config.upgrades.map(u => ({
-            name: u.name,
-            basePrice: u.price,
-            currentPrice: u.price,
-            cps: u.cps,
-            clickPower: u.clickPower || 0,
-            count: 0
+            name: u.name, basePrice: u.price, currentPrice: u.price,
+            cps: u.cps, clickPower: u.clickPower || 0, count: 0
         }));
 
-        // Zpřístupnění stavu pro automatické ukládání
         function syncGlobalState() {
             window.gameScore = score;
             window.gameClicks = totalClicks;
@@ -450,63 +275,49 @@
             window.gameUpgradesState = upgrades.map(u => ({ count: u.count, currentPrice: u.currentPrice }));
         }
 
-        window.applyLoadedData = function(data) {
-    if (!data) return;
-    if (data.coins !== undefined) score = Number(data.coins) || 0;
-    if (data.clicks !== undefined) totalClicks = Number(data.clicks) || 0;
-    
-    if (data.nick) {
-        const nickInput = document.getElementById('player-nick');
-        if (nickInput) nickInput.value = data.nick;
-    }
+        window.applyLoadedData = function (data) {
+            if (!data) return;
+            score = Number(data.coins) || 0;
+            totalClicks = Number(data.clicks) || 0;
 
-    if (data.upgrades && Array.isArray(data.upgrades)) {
-        data.upgrades.forEach((savedUpg, idx) => {
-            if (upgrades[idx]) {
-                upgrades[idx].count = savedUpg.count || 0;
-                upgrades[idx].currentPrice = savedUpg.currentPrice || Math.ceil(upgrades[idx].basePrice * Math.pow(1.15, upgrades[idx].count));
+            if (data.nick && data.nick !== 'Anonym') {
+                const nickInput = document.getElementById('player-nick');
+                if (nickInput) nickInput.value = data.nick;
             }
-        });
-    }
 
-    totalCps = 0;
-    clickPower = 1;
-    upgrades.forEach(u => {
-        totalCps += u.count * u.cps;
-        clickPower += (u.count * u.clickPower);
-    });
-
-    // Spočítání offline výdělku (1% z CPS za každou sekundu pryč)
-    if (data.updatedAt && totalCps > 0) {
-        const now = Date.now();
-        const secondsOffline = Math.floor((now - data.updatedAt) / 1000);
-        
-        if (secondsOffline >= 10) {
-            const maxOfflineSecs = Math.min(secondsOffline, 86400); // Max 24 hodin
-            const offlineEarnings = Math.floor(maxOfflineSecs * totalCps * 0.01);
-            
-            if (offlineEarnings > 0) {
-                score += offlineEarnings;
-                setTimeout(() => {
-                    const hours = Math.floor(maxOfflineSecs / 3600);
-                    const mins = Math.floor((maxOfflineSecs % 3600) / 60);
-                    const secs = maxOfflineSecs % 60;
-                    let timeText = "";
-                    if (hours > 0) timeText += hours + "h ";
-                    if (mins > 0) timeText += mins + "m ";
-                    timeText += secs + "s";
-
-                    alert("🌙 Vítej zpět!\n\nZatímco jsi byl pryč (" + timeText + "), tvá vylepšení ti pasivně vydělala (1% offline bonus):\n+" + offlineEarnings.toLocaleString('cs-CZ') + " " + config.currency + "!");
-                }, 600);
+            if (Array.isArray(data.upgrades)) {
+                data.upgrades.forEach((s, idx) => {
+                    if (upgrades[idx]) {
+                        upgrades[idx].count = s.count || 0;
+                        upgrades[idx].currentPrice = s.currentPrice || Math.ceil(upgrades[idx].basePrice * Math.pow(1.15, upgrades[idx].count));
+                    }
+                });
             }
-        }
-    }
 
-    syncGlobalState();
-    updateUI();
-};
+            totalCps = 0;
+            clickPower = 1;
+            upgrades.forEach(u => { totalCps += u.count * u.cps; clickPower += u.count * u.clickPower; });
 
-        // Nastavení prvků
+            // Offline výdělek (1 % CPS za sekundu, max 24 h)
+            if (data.updatedAt && totalCps > 0) {
+                const secondsOffline = Math.floor((Date.now() - data.updatedAt) / 1000);
+                if (secondsOffline >= 30) {
+                    const secs = Math.min(secondsOffline, 86400);
+                    const earned = Math.floor(secs * totalCps * 0.01);
+                    if (earned > 0) {
+                        score += earned;
+                        setTimeout(() => {
+                            const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+                            let t = (h > 0 ? h + 'h ' : '') + (m > 0 ? m + 'm ' : '') + s + 's';
+                            alert('🌙 Vítej zpět!\n\nBěhem tvé nepřítomnosti (' + t + ') ses vydělalo:\n+' + earned.toLocaleString('cs-CZ') + ' ' + config.currency + '!');
+                        }, 600);
+                    }
+                }
+            }
+            syncGlobalState();
+            updateUI();
+        };
+
         document.getElementById('header-emoji').textContent = config.emoji;
         document.getElementById('main-click-btn').textContent = config.emoji;
         document.getElementById('currency-label').textContent = config.currency;
@@ -515,7 +326,6 @@
         const cpsUI = document.getElementById('cps-val');
         const clicksUI = document.getElementById('clicks-val');
         const shopUI = document.getElementById('shop-list');
-
         const fmt = (n) => Math.floor(n).toLocaleString('cs-CZ');
 
         function renderShop() {
@@ -525,19 +335,13 @@
                 btn.className = 'w-full bg-slate-800 hover:bg-slate-700/80 disabled:opacity-40 disabled:hover:bg-slate-800 p-3.5 rounded-xl border border-slate-700/80 text-left transition flex items-center justify-between group cursor-pointer';
                 btn.id = 'upg-btn-' + i;
                 btn.onclick = () => buyUpgrade(i);
-                
-                let bonusText = [];
-                if (u.cps > 0) bonusText.push('+' + fmt(u.cps) + '/s');
-                if (u.clickPower > 0) bonusText.push('+' + fmt(u.clickPower) + '/klik');
-
-                btn.innerHTML = '<div>' +
-                    '<div class="font-bold text-sm text-white group-hover:text-purple-300 transition">' + u.name + '</div>' +
-                    '<div class="text-xs text-purple-400 mt-0.5">' + bonusText.join(' | ') + '</div>' +
-                '</div>' +
-                '<div class="text-right">' +
-                    '<div class="font-black text-amber-400 text-sm" id="upg-price-' + i + '">' + fmt(u.currentPrice) + '</div>' +
-                    '<div class="text-[10px] text-slate-400">Vlastněno: <span id="upg-count-' + i + '" class="font-bold text-slate-200">0</span></div>' +
-                '</div>';
+                const bonus = [];
+                if (u.cps > 0) bonus.push('+' + fmt(u.cps) + '/s');
+                if (u.clickPower > 0) bonus.push('+' + fmt(u.clickPower) + '/klik');
+                btn.innerHTML = '<div><div class="font-bold text-sm text-white group-hover:text-purple-300 transition">' + u.name + '</div>' +
+                    '<div class="text-xs text-purple-400 mt-0.5">' + bonus.join(' | ') + '</div></div>' +
+                    '<div class="text-right"><div class="font-black text-amber-400 text-sm" id="upg-price-' + i + '">' + fmt(u.currentPrice) + '</div>' +
+                    '<div class="text-[10px] text-slate-400">Vlastněno: <span id="upg-count-' + i + '" class="font-bold text-slate-200">0</span></div></div>';
                 shopUI.appendChild(btn);
             });
         }
@@ -546,7 +350,6 @@
             scoreUI.textContent = fmt(score);
             cpsUI.textContent = '+' + fmt(totalCps) + ' ' + config.currency + '/s';
             clicksUI.textContent = fmt(totalClicks);
-
             upgrades.forEach((u, i) => {
                 const btn = document.getElementById('upg-btn-' + i);
                 if (btn) {
@@ -570,45 +373,33 @@
             }
         }
 
-        function triggerExplosion(milestoneConfig, particleCount) {
-            const { text, color } = milestoneConfig;
-
+        function triggerExplosion(m, particleCount) {
             const banner = document.createElement('div');
             banner.className = 'milestone-banner';
-            banner.textContent = text;
-            banner.style.color = color;
+            banner.textContent = m.text;
+            banner.style.color = m.color;
             document.body.appendChild(banner);
             setTimeout(() => banner.remove(), 2600);
 
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
-
+            const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
             for (let i = 0; i < particleCount; i++) {
                 const p = document.createElement('div');
                 p.className = 'particle';
-                p.style.backgroundColor = color;
-                p.style.boxShadow = '0 0 12px ' + color;
-
+                p.style.backgroundColor = m.color;
+                p.style.boxShadow = '0 0 12px ' + m.color;
                 const size = 6 + Math.random() * 16;
                 p.style.width = size + 'px';
                 p.style.height = size + 'px';
-                p.style.left = centerX + 'px';
-                p.style.top = centerY + 'px';
-
+                p.style.left = cx + 'px';
+                p.style.top = cy + 'px';
                 const angle = Math.random() * Math.PI * 2;
                 const dist = 120 + Math.random() * Math.max(window.innerWidth, window.innerHeight) * 0.8;
-
                 p.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
                 p.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
-
                 document.body.appendChild(p);
                 setTimeout(() => p.remove(), 1200);
             }
         }
-
-
-
-
 
         document.getElementById('main-click-btn').addEventListener('click', (e) => {
             score += clickPower;
@@ -617,33 +408,23 @@
             const floatEl = document.createElement('div');
             floatEl.className = 'float-text';
             floatEl.textContent = '+' + fmt(clickPower);
-
-            const rect = e.target.getBoundingClientRect();
+            const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX || (rect.left + rect.width / 2);
             const y = e.clientY || (rect.top + rect.height / 2);
-
             floatEl.style.left = (x - 15) + 'px';
-            floatEl.style.top = (y - 25) + 'px';
-
+            floatEl.style.top = (y - 25 + window.scrollY) + 'px';
             document.body.appendChild(floatEl);
             setTimeout(() => floatEl.remove(), 800);
 
-            if (totalClicks === 10) {
-                triggerExplosion(config.milestone10, 60);
-            } else if (totalClicks === 100) {
-                triggerExplosion(config.milestone100, 160);
-            }
+            if (totalClicks === 10) triggerExplosion(config.milestone10, 60);
+            else if (totalClicks === 100) triggerExplosion(config.milestone100, 160);
 
             syncGlobalState();
             updateUI();
         });
 
         setInterval(() => {
-            if (totalCps > 0) {
-                score += totalCps;
-                syncGlobalState();
-                updateUI();
-            }
+            if (totalCps > 0) { score += totalCps; syncGlobalState(); updateUI(); }
         }, 1000);
 
         renderShop();
