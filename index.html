@@ -2,10 +2,12 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gooning Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        html, body { touch-action: manipulation; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+        input { font-size: 16px !important; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -96,8 +98,9 @@
         const lbDoc = () => doc(db, 'artifacts', APP_ID, 'public', 'data', 'leaderboard', currentUser.uid);
         const saveDoc = () => doc(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'saves', 'current');
 
+        const localKey = () => 'goon_game_save_' + (currentUser ? currentUser.uid : 'local');
         function readLocal() {
-            try { return JSON.parse(localStorage.getItem('goon_game_save')); } catch (e) { return null; }
+            try { return JSON.parse(localStorage.getItem(localKey())); } catch (e) { return null; }
         }
         function buildState() {
             return {
@@ -108,8 +111,10 @@
                 updatedAt: Date.now()
             };
         }
+        function isEmptyState() { return !(window.gameScore > 0) && !(window.gameClicks > 0); }
         function saveLocal() {
-            try { localStorage.setItem('goon_game_save', JSON.stringify(buildState())); } catch (e) {}
+            if (isEmptyState()) return;
+            try { localStorage.setItem(localKey(), JSON.stringify(buildState())); } catch (e) {}
         }
 
         async function initFirebase() {
@@ -181,22 +186,23 @@
 
         async function loadCloudProgress() {
             loaded = false;
-            let cloud = null;
+            let cloud = null, cloudOk = true;
             try {
                 const snap = await getDoc(saveDoc());
                 if (snap.exists()) cloud = snap.data();
             } catch (err) {
+                cloudOk = false;
                 console.error('Načtení savu:', err);
                 setStatus('⚠️ Cloud save nedostupný (' + err.code + ')');
             }
-            const local = readLocal();
-            const best = (cloud && local) ? ((cloud.updatedAt || 0) >= (local.updatedAt || 0) ? cloud : local) : (cloud || local);
+            // Cloud má přednost; lokální záloha jen když cloud nic nemá nebo je nedostupný
+            const best = cloud || readLocal();
             if (best) window.applyLoadedData(best);
             loaded = true;
         }
 
         window.saveGameProgress = async function (manual) {
-            if (!loaded) return;
+            if (!loaded || isEmptyState()) return;
             saveLocal();
             if (!db || !currentUser) return;
             const s = buildState();
@@ -344,6 +350,9 @@
             syncGlobalState();
             updateUI();
         };
+
+        ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev =>
+            document.addEventListener(ev, (e) => e.preventDefault()));
 
         document.getElementById('header-emoji').textContent = config.emoji;
         document.getElementById('main-click-btn').textContent = config.emoji;
