@@ -357,7 +357,7 @@
         // ---------- MODALY ----------
         window.closeModal = () => { modalName = null; $('modal').classList.add('hidden'); };
         window.openProfile = (uid) => openModal('profile', uid);
-        window.onPlayers = () => { if (modalName === 'duel') renderDuelList(); if (modalName === 'profiles') renderProfList(); };
+        window.onPlayers = () => { if (modalName === 'duel') renderDuelList(); if (modalName === 'profiles') renderProfList(); if (modalName === 'admin') renderAdminPlayers(); };
 
         window.openModal = (name, arg) => {
             modalName = name;
@@ -405,7 +405,9 @@
             } else if (name === 'admin') {
                 if (!isAdmin()) { closeModal(); return; }
                 title = '🛡️ Admin – podezření na autoclicker';
-                B.innerHTML = '<div id="admin-list" class="space-y-3"></div>'; renderAdminList();
+                B.innerHTML = '<div id="admin-list" class="space-y-3"></div><div class="text-sm font-bold text-red-400 mt-4 mb-2">👥 Všechny účty</div>' +
+                    '<input id="adm-q" oninput="renderAdminPlayers()" placeholder="Hledat hráče…" class="' + inputCls + ' mb-2"><div id="admin-players" class="space-y-2"></div>';
+                renderAdminList(); renderAdminPlayers();
             }
             $('modal-title').textContent = title; $('modal').classList.remove('hidden');
         };
@@ -632,10 +634,19 @@
             } catch (e) { console.warn('Report:', e.code); }
         };
 
+async function wipeOwnAccount() {
+            api().wipe(); $('player-nick').value = '';
+            try { localStorage.removeItem(localKey()); } catch (e) {}
+            toast('🗑 Tvůj účet byl smazán adminem. Můžeš začít znovu.', 10000);
+            await Promise.allSettled([deleteDoc(lbDoc()), deleteDoc(saveDoc()), deleteDoc(doc(col('penalties'), currentUser.uid))]);
+        }
+
         function applyPenalty(p) {
             if (!loaded) { setTimeout(() => applyPenalty(p), 700); return; }
             if (p.ts === lastPen) return; lastPen = p.ts;
-            api().penalty(p); toast('⚠️ Admin ti upravil účet (podezření na autoclicker).', 8000);
+            api().penalty(p);
+            if (p.delete) { wipeOwnAccount(); return; }
+            toast('⚠️ Admin ti upravil účet (podezření na autoclicker).', 8000);
             window.saveGameProgress(false, true).then(() => deleteDoc(doc(col('penalties'), currentUser.uid)).catch(() => {}));
         }
 
@@ -651,10 +662,33 @@
                 '<button data-u="' + r.id + '" onclick="adminAct(this.dataset.u,\'reset\')" class="bg-red-700 px-2 py-1 rounded font-bold">🗑 Reset účtu</button>' +
                 '<button data-u="' + r.id + '" onclick="adminAct(this.dataset.u,\'dismiss\')" class="bg-slate-600 px-2 py-1 rounded">✔ Zahodit</button></div></div>').join('');
         }
+window.renderAdminPlayers = () => {
+            const el = $('admin-players'); if (!el) return;
+            const q = (($('adm-q') || {}).value || '').trim().toLowerCase();
+            const list = allPlayers.filter(p => p.id !== currentUser.uid && (!q || (p.nick || '').toLowerCase().includes(q) || p.id.toLowerCase().includes(q))).slice(0, 50);
+            el.innerHTML = list.length ? list.map(p => '<div class="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2"><div class="min-w-0"><div class="text-sm truncate" style="' + nickStyle(p) + '">' + nm(p) + '</div>' +
+                '<div class="text-[10px] text-slate-500">' + (isOnline(p) ? '🟢' : '⚫') + ' ' + n0(p.coins) + ' · ' + escapeHtml(p.id.slice(0, 8)) + '…</div></div>' +
+                '<button data-u="' + p.id + '" onclick="adminAct(this.dataset.u,\'delete\')" class="bg-red-700 hover:bg-red-600 text-xs font-bold px-3 py-1.5 rounded-lg">🗑 Smazat</button></div>').join('') : '<div class="text-xs text-slate-500">Nikdo nenalezen.</div>';
+        };
         window.adminAct = async (uid, act) => {
             if (!isAdmin()) return;
             try {
                 if (act === 'dismiss') { await deleteDoc(doc(col('reports'), uid)); return; }
+                if (act === 'delete') {
+                    const t = allPlayers.find(x => x.id === uid);
+                    if (!confirm('Opravdu SMAZAT účet hráče "' + ((t && t.nick) || uid) + '"? Nejde to vrátit.')) return;
+                    // 1) značka pro hráče (smaže si i lokální data, i když je offline nebo má starou zálohu)
+                    await setDoc(doc(col('penalties'), uid), { delete: true, reset: true, coinsPct: 100, upgradesPct: 100, ts: Date.now() });
+                    // 2) okamžité smazání dat z cloudu
+                    const r = await Promise.allSettled([
+                        deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'leaderboard', uid)),
+                        deleteDoc(doc(db, 'artifacts', APP_ID, 'users', uid, 'saves', 'current')),
+                        deleteDoc(doc(db, 'artifacts', APP_ID, 'users', uid, 'saves', 'clock')),
+                        deleteDoc(doc(col('reports'), uid))
+                    ]);
+                    toast(r.some(x => x.status === 'rejected') ? 'Část dat se nepodařilo smazat – zkontroluj Firestore pravidla (mazání pro admina).' : '🗑 Účet smazán.', 5000);
+                    return;
+                }
                 const pct = Math.min(100, Math.max(1, Number($('ac-' + uid).value) || 50));
                 if (act === 'reset' && !confirm('Opravdu resetovat celý účet?')) return;
                 await setDoc(doc(col('penalties'), uid), act === 'reset' ? { reset: true, coinsPct: 100, upgradesPct: 100, ts: Date.now() } : { reset: false, coinsPct: pct, upgradesPct: pct, ts: Date.now() });
@@ -919,6 +953,11 @@
             score: () => score,
             addCoins(n) { score = Math.max(0, score + n); syncGlobalState(); updateUI(); },
             giveDrop(id) { limited.owned[id] = (limited.owned[id] || 0) + 1; recalcTotals(); syncGlobalState(); updateUI(); },
+            wipe() {
+                this.penalty({ reset: true });
+                Object.assign(meta, { avatar: '🗿', font: 'sans', color: '#fbbf24', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, joined: Date.now() });
+                applyEmoji(); syncGlobalState(); updateUI();
+            },
             penalty(p) {
                 const c = Math.min(100, Math.max(0, Number(p.coinsPct) || 0)), u = Math.min(100, Math.max(0, Number(p.upgradesPct) || 0));
                 if (p.reset) {
