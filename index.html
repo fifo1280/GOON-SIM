@@ -8,6 +8,7 @@
     <style>
         html, body { touch-action: manipulation; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
         input { font-size: 16px !important; }
+        input, textarea, select { user-select: text; -webkit-user-select: text; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -32,6 +33,37 @@
             <span id="status-indicator">🟡 Připojuji se...</span>
         </div>
     </header>
+
+    <nav class="bg-slate-900/80 border-b border-slate-800 px-4 py-2 flex gap-2 overflow-x-auto text-xs font-bold whitespace-nowrap">
+        <button onclick="openModal('duel')" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg">⚔️ Souboj</button>
+        <button onclick="openModal('wheel')" class="bg-purple-600 hover:bg-purple-500 px-3 py-1.5 rounded-lg">🎡 Kolo štěstí</button>
+        <button onclick="openModal('profiles')" class="bg-sky-600 hover:bg-sky-500 px-3 py-1.5 rounded-lg">👤 Profily</button>
+        <button onclick="openModal('settings')" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg">⚙️ Nastavení</button>
+        <button id="admin-btn" onclick="openModal('admin')" class="hidden bg-amber-600 hover:bg-amber-500 px-3 py-1.5 rounded-lg">🛡️ Admin</button>
+    </nav>
+
+    <div id="modal" class="hidden fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5">
+            <div class="flex justify-between items-center mb-3"><h3 id="modal-title" class="font-bold text-lg"></h3><button onclick="closeModal()" class="text-slate-400 text-xl px-2">✕</button></div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <div id="duel-invite" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[250] bg-slate-900 border border-amber-500 rounded-xl p-4 w-[90%] max-w-sm text-center shadow-2xl">
+        <div id="duel-invite-text" class="text-sm mb-3"></div>
+        <div class="flex gap-2"><button id="inv-yes" class="flex-1 bg-green-600 py-2 rounded-lg text-sm font-bold">Přijmout</button><button id="inv-no" class="flex-1 bg-red-700 py-2 rounded-lg text-sm font-bold">Odmítnout</button></div>
+    </div>
+
+    <div id="duel-ov" class="hidden fixed inset-0 z-[300] bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center">
+        <div id="duel-title" class="text-2xl font-black mb-4"></div>
+        <div class="w-full max-w-sm space-y-3 mb-6">
+            <div><div class="text-xs flex justify-between mb-1"><span>Ty</span><span id="duel-me-c"></span></div><div class="h-3 bg-slate-800 rounded"><div id="duel-me-b" class="h-3 bg-amber-400 rounded" style="width:0"></div></div></div>
+            <div><div class="text-xs flex justify-between mb-1"><span id="duel-opp-n"></span><span id="duel-opp-c"></span></div><div class="h-3 bg-slate-800 rounded"><div id="duel-opp-b" class="h-3 bg-red-500 rounded" style="width:0"></div></div></div>
+        </div>
+        <button id="duel-btn" onclick="duelClick(event)" class="click-emoji text-8xl focus:outline-none">🍑</button>
+        <div id="duel-msg" class="mt-4 text-sm text-slate-300"></div>
+        <button id="duel-close" onclick="closeDuel()" class="hidden mt-4 bg-slate-700 px-4 py-2 rounded-lg text-sm">Zavřít</button>
+    </div>
 
     <main class="flex-1 grid grid-cols-1 lg:grid-cols-12">
 
@@ -85,7 +117,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, linkWithRedirect, signInWithRedirect, getRedirectResult, signInWithCredential, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, runTransaction, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, runTransaction, deleteDoc, increment, query, where, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBlsK8qClnYEyKco0Z2TZ83kuDpSrB4B8g",
@@ -118,12 +150,13 @@
                 clicks: window.gameClicks || 0,
                 upgrades: window.gameUpgradesState || [],
                 limited: window.gameLimited || { owned: {}, slot: 0, slotBought: 0 },
+                meta: window.gameMeta || {},
                 updatedAt: Date.now()
             };
         }
         function isEmptyState() { return !(window.gameScore > 0) && !(window.gameClicks > 0); }
-        function saveLocal() {
-            if (isEmptyState()) return;
+        function saveLocal(force) {
+            if (isEmptyState() && !force) return;
             try { localStorage.setItem(localKey(), JSON.stringify(buildState())); } catch (e) {}
         }
 
@@ -171,6 +204,7 @@
                 $('logout-btn').classList.toggle('hidden', !isGoogle);
                 listenToLeaderboard();
                 await loadCloudProgress();
+                startFeatures();
             });
         }
 
@@ -187,7 +221,9 @@
                 const players = [];
                 snap.forEach(d => players.push({ id: d.id, ...d.data() }));
                 players.sort((a, b) => (b.coins || 0) - (a.coins || 0));
+                allPlayers = players;
                 renderLeaderboardUI(players.slice(0, 15));
+                if (window.onPlayers) window.onPlayers();
             }, (error) => {
                 console.error('Žebříček:', error);
                 renderLeaderboardUI([], '⚠️ Žebříček nelze načíst (' + error.code + '). Zkontroluj Firestore pravidla.');
@@ -211,14 +247,14 @@
             loaded = true;
         }
 
-        window.saveGameProgress = async function (manual) {
-            if (!loaded || isEmptyState()) return;
-            saveLocal();
+        window.saveGameProgress = async function (manual, force) {
+            if (!loaded || (isEmptyState() && !force)) return;
+            saveLocal(force);
             if (!db || !currentUser) return;
             const s = buildState();
             try {
                 await setDoc(saveDoc(), s, { merge: true });
-                await setDoc(lbDoc(), { nick: s.nick, coins: s.coins, clicks: s.clicks, updatedAt: s.updatedAt }, { merge: true });
+                await setDoc(lbDoc(), pubProfile(s), { merge: true });
                 if (manual) {
                     const btn = $('save-score-btn');
                     btn.textContent = '✅ Uloženo do cloudu!';
@@ -282,8 +318,8 @@
                 const isMe = currentUser && p.id === currentUser.uid;
                 const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '.';
                 const rowClass = isMe ? 'bg-purple-950/40 font-bold text-amber-300' : 'text-slate-300';
-                return '<tr class="' + rowClass + ' hover:bg-slate-900 transition"><td class="py-2.5 font-semibold">' + medal + '</td>' +
-                    '<td class="py-2.5 truncate max-w-[110px]">' + escapeHtml(p.nick || 'Hráč') + '</td>' +
+                return '<tr data-u="' + p.id + '" onclick="openProfile(this.dataset.u)" class="cursor-pointer ' + rowClass + ' hover:bg-slate-900 transition"><td class="py-2.5 font-semibold">' + medal + '</td>' +
+                    '<td class="py-2.5 truncate max-w-[110px]" style="' + nickStyle(p) + '">' + escapeHtml((p.avatar || '') + ' ' + (p.nick || 'Hráč')) + '</td>' +
                     '<td class="py-2.5 text-right font-mono text-amber-400">' + Math.floor(p.coins || 0).toLocaleString('cs-CZ') + '</td></tr>';
             }).join('');
         }
@@ -291,6 +327,318 @@
         function escapeHtml(str) {
             return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
         }
+
+        // ===== PROFILY, SOUBOJE, KOLO ŠTĚSTÍ, NASTAVENÍ, ADMIN =====
+        const ADMIN_EMAIL = 'filip.netolickyfifo@gmail.com';
+        const FONTS = { sans: 'ui-sans-serif,system-ui,sans-serif', serif: 'Georgia,serif', mono: '"Courier New",monospace', comic: '"Comic Sans MS","Chalkboard SE",cursive', impact: 'Impact,"Arial Black",sans-serif' };
+        const AVATARS = ['🗿', '😎', '🔥', '👑', '🦄', '🐉', '💀', '🤡', '🍒', '🍑', '🍆'];
+        let allPlayers = [], reports = [], myDuels = {}, unsubs = [], modalName = null, shownInv = {};
+        let activeDuel = null, duelClicks = 0, lastProg = 0, duelDet = null, duelTimer = null, spinning = false, lastPen = 0, lastRep = 0;
+        const api = () => window.gameAPI, meta = () => window.gameMeta || {};
+        const isAdmin = () => !!(currentUser && currentUser.email === ADMIN_EMAIL);
+        const col = (n) => collection(db, 'artifacts', APP_ID, 'public', 'data', n);
+        const isOnline = (p) => Date.now() - (p.lastSeen || 0) < 30000;
+        const n0 = (n) => Math.floor(n || 0).toLocaleString('cs-CZ');
+        const toast = (t, ms) => window.showToast(t, ms);
+        const nickStyle = (p) => 'font-family:' + (FONTS[p.nickFont] || FONTS.sans).replace(/"/g, "'") + ';color:' + (/^#[0-9a-f]{6}$/i.test(p.nickColor || '') ? p.nickColor : '#fbbf24');
+        const nm = (p) => escapeHtml((p.avatar || '🗿') + ' ' + (p.nick || 'Hráč'));
+        const stat = (l, v) => '<div class="bg-slate-800 rounded-lg p-2"><div class="text-[10px] text-slate-400">' + l + '</div><div class="text-sm font-bold text-amber-300">' + v + '</div></div>';
+        const inputCls = 'w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white';
+
+        function pubProfile(s) {
+            const m = meta(), l = (window.gameLimited || {}).owned || {};
+            return { nick: s.nick, coins: s.coins, clicks: s.clicks, updatedAt: s.updatedAt, lastSeen: Date.now(),
+                cps: Math.floor(window.gameCps || 0), clickPower: window.gameClickPower || 1,
+                ups: (window.gameUpgradesState || []).reduce((a, u) => a + u.count, 0), drops: Object.values(l).reduce((a, b) => a + b, 0),
+                avatar: m.avatar || '🗿', nickFont: m.font || 'sans', nickColor: m.color || '#fbbf24', bio: m.bio || '',
+                wins: m.wins || 0, losses: m.losses || 0, spins: m.spins || 0, jackpots: m.jackpots || 0, joined: m.joined || Date.now() };
+        }
+
+        // ---------- MODALY ----------
+        window.closeModal = () => { modalName = null; $('modal').classList.add('hidden'); };
+        window.openProfile = (uid) => openModal('profile', uid);
+        window.onPlayers = () => { if (modalName === 'duel') renderDuelList(); if (modalName === 'profiles') renderProfList(); };
+
+        window.openModal = (name, arg) => {
+            modalName = name;
+            const B = $('modal-body'); let title = '';
+            if (name === 'duel') {
+                title = '⚔️ Souboj – kdo první do 100';
+                B.innerHTML = '<div class="text-xs text-slate-400 mb-2">Oba vsadíte stejné % ze svého účtu. Kdo první naklikne 100×, vyhrává sázku poraženého. Vyzvat jde jen hráče, kteří jsou online.</div>' +
+                    '<div class="flex items-center gap-2 mb-3"><label class="text-xs">Sázka %</label><input id="duel-pct" type="number" min="1" max="50" value="10" class="w-20 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-white"><span class="text-[10px] text-slate-500">(1–50)</span></div><div id="duel-list" class="space-y-2"></div>';
+                renderDuelList();
+            } else if (name === 'profiles') {
+                title = '👤 Profily';
+                B.innerHTML = '<input id="prof-q" oninput="renderProfList()" placeholder="Hledat hráče…" class="' + inputCls + ' mb-3"><div id="prof-list" class="space-y-2"></div>';
+                renderProfList();
+            } else if (name === 'profile') {
+                const me = currentUser && arg === currentUser.uid;
+                const p = me ? Object.assign(pubProfile(buildState()), { id: arg }) : allPlayers.find(x => x.id === arg);
+                if (!p) { closeModal(); return; }
+                title = 'Profil';
+                B.innerHTML = '<div class="text-center mb-3"><div class="text-6xl">' + escapeHtml(p.avatar || '🗿') + '</div><div class="text-2xl font-black mt-1" style="' + nickStyle(p) + '">' + escapeHtml(p.nick || 'Hráč') + '</div>' +
+                    '<div class="text-xs text-slate-400">' + (isOnline(p) || me ? '🟢 Online' : '⚫ Naposledy ' + new Date(p.lastSeen || 0).toLocaleString('cs-CZ')) + '</div><div class="text-sm text-slate-300 mt-2 italic">' + escapeHtml(p.bio || '') + '</div></div>' +
+                    '<div class="grid grid-cols-2 gap-2">' + stat('Goon Coins', n0(p.coins)) + stat('Naklikáno', n0(p.clicks)) + stat('CPS', n0(p.cps)) + stat('Síla kliku', n0(p.clickPower)) +
+                    stat('Upgradů', n0(p.ups)) + stat('Limitovek', n0(p.drops)) + stat('Souboje V / P', (p.wins || 0) + ' / ' + (p.losses || 0)) + stat('Kolo: výhry / točení', (p.jackpots || 0) + ' / ' + (p.spins || 0)) + '</div>' +
+                    '<div class="text-[10px] text-slate-500 mt-2 text-center">Ve hře od ' + new Date(p.joined || 0).toLocaleDateString('cs-CZ') + '</div>' +
+                    (me ? '<button onclick="openModal(\'settings\')" class="mt-3 w-full bg-slate-700 py-2 rounded-lg text-sm">✏️ Upravit profil</button>'
+                        : sendHTML(p) + (isOnline(p) ? '<button data-u="' + p.id + '" onclick="openModal(\'duel\')" class="mt-3 w-full bg-red-600 py-2 rounded-lg text-sm font-bold">⚔️ Vyzvat na souboj</button>' : ''));
+            } else if (name === 'wheel') {
+                const W = window.WHEEL, tot = W.prizes.reduce((a, x) => a + x.w, 0);
+                const label = (x) => x.t === 'nothing' ? 'Nic' : x.t === 'coins' ? Math.round(x.frac * 100) + ' % ceny zpět' : '🏆 ' + window.limitedDrops.find(d => d.id === x.id).name;
+                title = '🎡 Kolo štěstí';
+                B.innerHTML = '<div class="text-xs text-slate-400 mb-2">Cena za zatočení: <b class="text-amber-400">' + n0(W.cost) + '</b>. Většinou nic, ale můžeš vyhrát limitovaný upgrade!</div>' +
+                    '<div id="wheel-disp" class="text-7xl text-center my-3">🎡</div><div id="wheel-msg" class="text-center text-sm min-h-[1.5rem] mb-2"></div>' +
+                    '<button onclick="spinWheel()" class="w-full bg-purple-600 hover:bg-purple-500 py-2.5 rounded-lg font-bold">Zatočit (' + n0(W.cost) + ')</button>' +
+                    '<div class="mt-3 text-[11px] text-slate-400 space-y-0.5">' + W.prizes.map(x => '<div class="flex justify-between"><span>' + label(x) + '</span><span>' + (x.w / tot * 100).toFixed(1) + ' %</span></div>').join('') + '</div>';
+            } else if (name === 'settings') {
+                const m = meta();
+                const sel = (id, opts, cur) => '<select id="' + id + '" class="' + inputCls + '">' + opts.map(o => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>';
+                title = '⚙️ Nastavení';
+                B.innerHTML = '<div class="text-xs text-slate-400 mb-1">Emoji na klikání</div><div id="emoji-pick" class="flex gap-2 mb-4"></div>' +
+                    '<div class="text-xs text-slate-400 mb-1">Profilovka</div>' + sel('set-avatar', AVATARS.map(a => [a, a]), m.avatar) +
+                    '<div class="text-xs text-slate-400 mt-3 mb-1">Styl písma jména</div>' + sel('set-font', [['sans', 'Normální'], ['serif', 'Serif'], ['mono', 'Mono'], ['comic', 'Comic'], ['impact', 'Impact']], m.font) +
+                    '<div class="text-xs text-slate-400 mt-3 mb-1">Barva jména</div><input id="set-color" type="color" value="' + (m.color || '#fbbf24') + '" class="w-full h-10 bg-slate-950 border border-slate-700 rounded-lg">' +
+                    '<div class="text-xs text-slate-400 mt-3 mb-1">O mně</div><input id="set-bio" maxlength="60" value="' + escapeHtml(m.bio || '') + '" class="' + inputCls + '">' +
+                    '<button onclick="saveProfile()" class="mt-4 w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg">💾 Uložit profil</button>';
+                renderEmojiPick();
+            } else if (name === 'admin') {
+                if (!isAdmin()) { closeModal(); return; }
+                title = '🛡️ Admin – podezření na autoclicker';
+                B.innerHTML = '<div id="admin-list" class="space-y-3"></div>'; renderAdminList();
+            }
+            $('modal-title').textContent = title; $('modal').classList.remove('hidden');
+        };
+
+        window.renderProfList = () => {
+            const el = $('prof-list'); if (!el) return;
+            const q = (($('prof-q') || {}).value || '').trim().toLowerCase();
+            const list = allPlayers.filter(p => !q || (p.nick || '').toLowerCase().includes(q)).sort((a, b) => (b.coins || 0) - (a.coins || 0)).slice(0, 25);
+            el.innerHTML = list.length ? list.map(p => '<div data-u="' + p.id + '" onclick="openProfile(this.dataset.u)" class="cursor-pointer flex justify-between items-center bg-slate-800 hover:bg-slate-700 rounded-lg px-3 py-2"><span class="text-sm truncate" style="' + nickStyle(p) + '">' + nm(p) + '</span><span class="text-[10px] text-slate-400">' + (isOnline(p) ? '🟢' : '⚫') + ' ' + n0(p.coins) + '</span></div>').join('') : '<div class="text-xs text-slate-500">Nikdo nenalezen.</div>';
+        };
+
+        window.renderDuelList = () => {
+            const el = $('duel-list'); if (!el) return;
+            const list = allPlayers.filter(p => p.id !== currentUser.uid).sort((a, b) => isOnline(b) - isOnline(a) || (b.coins || 0) - (a.coins || 0));
+            el.innerHTML = list.length ? list.map(p => '<div class="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2"><div class="min-w-0"><div class="text-sm truncate" style="' + nickStyle(p) + '">' + nm(p) + '</div><div class="text-[10px] text-slate-400">' + (isOnline(p) ? '🟢 online' : '⚫ offline') + ' · ' + n0(p.coins) + '</div></div>' +
+                '<button ' + (isOnline(p) ? '' : 'disabled') + ' data-u="' + p.id + '" onclick="challenge(this.dataset.u)" class="bg-red-600 hover:bg-red-500 disabled:opacity-30 text-xs font-bold px-3 py-1.5 rounded-lg">⚔️ Vyzvat</button></div>').join('') : '<div class="text-xs text-slate-500">Zatím žádní další hráči.</div>';
+        };
+
+        // ---------- NASTAVENÍ ----------
+        function renderEmojiPick() {
+            const el = $('emoji-pick'); if (!el) return;
+            el.innerHTML = ['🍒', '🍑', '🍆'].map(e => '<button data-e="' + e + '" onclick="setClickEmoji(this.dataset.e)" class="text-4xl p-2 rounded-xl border-2 ' + (meta().emoji === e ? 'border-amber-400 bg-slate-800' : 'border-slate-700') + '">' + e + '</button>').join('');
+        }
+        window.setClickEmoji = (e) => { meta().emoji = e; window.applyEmoji(); renderEmojiPick(); window.saveGameProgress(false); };
+        window.saveProfile = () => {
+            const m = meta();
+            m.avatar = $('set-avatar').value; m.font = $('set-font').value; m.color = $('set-color').value; m.bio = $('set-bio').value.trim().slice(0, 60);
+            window.saveGameProgress(false); toast('✅ Profil uložen', 2000);
+        };
+
+        // ---------- KOLO ŠTĚSTÍ ----------
+        window.spinWheel = async () => {
+            const W = window.WHEEL;
+            if (spinning) return;
+            if (api().score() < W.cost) { toast('Nemáš dost coinů.', 2500); return; }
+            spinning = true; api().addCoins(-W.cost); meta().spins = (meta().spins || 0) + 1;
+            const disp = $('wheel-disp'), faces = ['🎡', '💨', '🪙', '✨', '💎', '🍆', '🍑', '🍒']; let i = 0;
+            const iv = setInterval(() => { if (disp) disp.textContent = faces[i++ % faces.length]; }, 90);
+            await new Promise(r => setTimeout(r, 1800)); clearInterval(iv);
+            const tot = W.prizes.reduce((a, x) => a + x.w, 0); let r = Math.random() * tot, pr = W.prizes[0];
+            for (const x of W.prizes) { if ((r -= x.w) < 0) { pr = x; break; } }
+            let face = '💨', msg = 'Nic… zkus štěstí znovu.';
+            if (pr.t === 'drop') { const d = window.limitedDrops.find(x => x.id === pr.id); api().giveDrop(pr.id); meta().jackpots = (meta().jackpots || 0) + 1; face = d.emoji; msg = '🎉 JACKPOT! Vyhrál jsi ' + d.name + '!'; window.triggerExplosion({ text: '🎉 JACKPOT!', color: '#fbbf24' }, 120); }
+            else if (pr.t === 'coins') { const back = Math.floor(W.cost * pr.frac); api().addCoins(back); face = '🪙'; msg = 'Vyhrál jsi ' + n0(back) + ' coinů zpět.'; }
+            if ($('wheel-disp')) { $('wheel-disp').textContent = face; $('wheel-msg').textContent = msg; }
+            spinning = false; window.saveGameProgress(false);
+        };
+
+        // ---------- SOUBOJE ----------
+        function startFeatures() {
+            unsubs.forEach(u => u && u()); unsubs = [];
+            $('admin-btn').classList.toggle('hidden', !isAdmin());
+            const dh = (s) => s.docChanges().forEach(ch => { if (ch.type === 'removed') delete myDuels[ch.doc.id]; else { const d = { id: ch.doc.id, ...ch.doc.data() }; myDuels[d.id] = d; onDuel(d); } });
+            const er = (e) => console.warn('Firestore:', e.code);
+            unsubs.push(onSnapshot(query(col('duels'), where('from', '==', currentUser.uid)), dh, er));
+            unsubs.push(onSnapshot(query(col('duels'), where('to', '==', currentUser.uid)), dh, er));
+            unsubs.push(onSnapshot(query(col('transfers'), where('to', '==', currentUser.uid)), (s) => s.docChanges().forEach(ch => { if (ch.type !== 'removed') receiveTransfer({ id: ch.doc.id, ...ch.doc.data() }); }), er));
+            unsubs.push(onSnapshot(doc(col('penalties'), currentUser.uid), (s) => { if (s.exists()) applyPenalty(s.data()); }, er));
+            if (isAdmin()) unsubs.push(onSnapshot(col('reports'), (s) => { reports = s.docs.map(d => ({ id: d.id, ...d.data() })); if (modalName === 'admin') renderAdminList(); }, er));
+        }
+
+        window.challenge = async (uid) => {
+            const pct = Math.min(50, Math.max(1, Math.floor(Number(($('duel-pct') || {}).value) || 10)));
+            const stake = Math.floor(api().score() * pct / 100), opp = allPlayers.find(p => p.id === uid);
+            if (!opp || !isOnline(opp)) { toast('Hráč není online.', 2500); return; }
+            if (stake < 1) { toast('Máš málo coinů na sázku.', 2500); return; }
+            const id = currentUser.uid + '_' + Date.now();
+            try {
+                await setDoc(doc(col('duels'), id), { from: currentUser.uid, fromNick: $('player-nick').value.trim() || 'Anonym', to: uid, toNick: opp.nick || 'Hráč', pct, stakeFrom: stake, stakeTo: 0, status: 'pending', createdAt: Date.now(), progress: {} });
+                closeModal(); toast('⚔️ Výzva odeslána hráči ' + (opp.nick || '') + '…', 3000);
+            } catch (e) { toast('Výzvu se nepodařilo odeslat (' + e.code + ')', 4000); }
+        };
+
+        function showInvite(d) {
+            const my = Math.floor(api().score() * d.pct / 100);
+            $('duel-invite-text').textContent = '⚔️ ' + d.fromNick + ' tě vyzývá! Sázka ' + d.pct + ' % účtu (tvoje ≈ ' + n0(my) + '). Kdo první naklikne 100×, vyhrává.';
+            $('duel-invite').classList.remove('hidden');
+            $('inv-yes').onclick = () => answerDuel(d, true);
+            $('inv-no').onclick = () => answerDuel(d, false);
+        }
+        async function answerDuel(d, yes) {
+            $('duel-invite').classList.add('hidden');
+            const ref = doc(col('duels'), d.id), stake = Math.floor(api().score() * d.pct / 100);
+            try {
+                if (!yes || stake < 1) { if (yes) toast('Máš málo coinů na sázku.', 2500); await updateDoc(ref, { status: 'declined' }); return; }
+                await updateDoc(ref, { status: 'active', stakeTo: stake, startAt: Date.now() + 4000 });
+            } catch (e) { toast('Chyba souboje (' + e.code + ')', 4000); }
+        }
+
+        function onDuel(d) {
+            const me = currentUser.uid, now = Date.now();
+            if (d.status === 'pending' && d.to === me && now - d.createdAt < 60000 && !shownInv[d.id]) { shownInv[d.id] = 1; showInvite(d); }
+            else if (d.status === 'declined' && d.from === me && now - d.createdAt < 120000 && !shownInv[d.id]) { shownInv[d.id] = 1; toast(d.toNick + ' odmítl souboj.', 4000); }
+            else if (d.status === 'active' && d.startAt && now - d.startAt < 120000 && activeDuel !== d.id) openDuel(d);
+            else if (d.status === 'finished') settleDuel(d);
+        }
+
+        function openDuel(d) {
+            activeDuel = d.id; duelClicks = 0;
+            duelDet = window.makeDetector((r, i) => { duelClicks = 0; window.flagAutoclick(r, i); });
+            $('duel-ov').classList.remove('hidden'); $('duel-btn').classList.remove('hidden'); $('duel-close').classList.add('hidden');
+            window.applyEmoji(); clearInterval(duelTimer); duelTimer = setInterval(renderDuel, 120); renderDuel();
+        }
+        function renderDuel() {
+            const d = myDuels[activeDuel]; if (!d) return;
+            const me = currentUser.uid, opp = d.from === me ? d.to : d.from, left = d.startAt - Date.now();
+            const oppN = d.from === me ? d.toNick : d.fromNick, fin = d.status === 'finished';
+            const mine = fin && d.winner === me ? 100 : Math.min(100, duelClicks), theirs = fin && d.winner === opp ? 100 : Math.min(100, (d.progress || {})[opp] || 0);
+            $('duel-title').textContent = fin ? (d.winner === me ? '🏆 VYHRÁL JSI!' : '💀 Prohrál jsi') : left > 0 ? 'Start za ' + Math.ceil(left / 1000) : 'KLIKEJ! První do 100';
+            $('duel-me-c').textContent = mine + ' / 100'; $('duel-me-b').style.width = mine + '%';
+            $('duel-opp-n').textContent = oppN; $('duel-opp-c').textContent = theirs + ' / 100'; $('duel-opp-b').style.width = theirs + '%';
+            $('duel-msg').textContent = 'Sázka: ' + n0(d.stakeFrom) + ' vs ' + n0(d.stakeTo);
+            if (fin || (-left) > 110000) { $('duel-btn').classList.add('hidden'); $('duel-close').classList.remove('hidden'); clearInterval(duelTimer); }
+        }
+        window.closeDuel = () => { clearInterval(duelTimer); activeDuel = null; $('duel-ov').classList.add('hidden'); };
+
+        window.duelClick = async (e) => {
+            const d = myDuels[activeDuel];
+            if (!d || d.status !== 'active' || Date.now() < d.startAt || duelClicks >= 100) return;
+            if (duelDet) duelDet(e);
+            duelClicks++;
+            const ref = doc(col('duels'), d.id), now = Date.now();
+            if (duelClicks >= 100) {
+                try {
+                    await runTransaction(db, async (tx) => {
+                        const x = (await tx.get(ref)).data();
+                        if (x.status !== 'active' || x.winner) return;
+                        tx.update(ref, { status: 'finished', winner: currentUser.uid, finishedAt: Date.now(), ['progress.' + currentUser.uid]: 100 });
+                    });
+                } catch (er) { console.warn(er); }
+            } else if (now - lastProg > 350) { lastProg = now; updateDoc(ref, { ['progress.' + currentUser.uid]: duelClicks }).catch(() => {}); }
+        };
+
+        async function settleDuel(d) {
+            const me = currentUser.uid, ref = doc(col('duels'), d.id);
+            if ((d.applied || {})[me]) return;
+            let ok = false;
+            try {
+                ok = await runTransaction(db, async (tx) => {
+                    const x = (await tx.get(ref)).data();
+                    if ((x.applied || {})[me]) return false;
+                    tx.update(ref, { ['applied.' + me]: true }); return true;
+                });
+            } catch (e) { return; }
+            if (!ok) return;
+            const won = d.winner === me, myStake = d.from === me ? d.stakeFrom : d.stakeTo, loserStake = d.winner === d.from ? d.stakeTo : d.stakeFrom;
+            const m = meta();
+            if (won) { api().addCoins(loserStake); m.wins = (m.wins || 0) + 1; toast('🏆 Vyhrál jsi souboj! +' + n0(loserStake), 5000); }
+            else { api().addCoins(-myStake); m.losses = (m.losses || 0) + 1; toast('💀 Prohrál jsi souboj. −' + n0(myStake), 5000); }
+            window.saveGameProgress(false, true);
+        }
+
+        // ---------- POSÍLÁNÍ COINŮ ----------
+        const seenTr = {};
+        function sendHTML(p) {
+            return '<div class="mt-3 flex gap-2"><input id="send-amt" type="number" min="1" placeholder="Částka" class="' + inputCls + '">' +
+                '<button data-u="' + p.id + '" onclick="sendCoins(this.dataset.u)" class="bg-green-600 hover:bg-green-500 px-3 rounded-lg text-sm font-bold whitespace-nowrap">💸 Poslat</button></div>' +
+                '<div class="text-[10px] text-slate-500 mt-1">Coiny dostane i offline hráč – připíšou se mu při příštím přihlášení.</div>';
+        }
+        window.sendCoins = async (uid) => {
+            const amount = Math.floor(Number(($('send-amt') || {}).value));
+            const p = allPlayers.find(x => x.id === uid);
+            if (!p || uid === currentUser.uid) return;
+            if (!(amount >= 1)) { toast('Zadej částku.', 2500); return; }
+            if (amount > api().score()) { toast('Nemáš dost coinů.', 2500); return; }
+            if (!confirm('Poslat ' + n0(amount) + ' coinů hráči ' + (p.nick || 'Hráč') + '?')) return;
+            api().addCoins(-amount);
+            try {
+                await setDoc(doc(col('transfers'), currentUser.uid + '_' + Date.now()), { from: currentUser.uid, fromNick: $('player-nick').value.trim() || 'Anonym', to: uid, toNick: p.nick || 'Hráč', amount: amount, createdAt: Date.now(), applied: false });
+                toast('💸 Poslal jsi ' + n0(amount) + ' coinů hráči ' + (p.nick || 'Hráč'), 4000);
+                window.saveGameProgress(false);
+            } catch (e) {
+                api().addCoins(amount); // vrácení při chybě
+                toast('Převod selhal (' + e.code + '), coiny ti byly vráceny.', 5000);
+            }
+        };
+        async function receiveTransfer(t) {
+            if (t.applied || seenTr[t.id] || !(Number(t.amount) > 0)) return;
+            if (!loaded) { setTimeout(() => receiveTransfer(t), 700); return; }
+            seenTr[t.id] = 1;
+            const ref = doc(col('transfers'), t.id); let ok = false;
+            try {
+                ok = await runTransaction(db, async (tx) => {
+                    const x = (await tx.get(ref)).data();
+                    if (x.applied) return false;
+                    tx.update(ref, { applied: true }); return true;
+                });
+            } catch (e) { delete seenTr[t.id]; return; }
+            if (!ok) return;
+            api().addCoins(Math.floor(t.amount));
+            toast('💸 ' + t.fromNick + ' ti poslal ' + n0(t.amount) + ' coinů!', 6000);
+            window.saveGameProgress(false, true);
+        }
+
+        // ---------- AUTOCLICKER: report + admin ----------
+        window.reportAutoclicker = async (info) => {
+            if (!db || !currentUser || Date.now() - lastRep < 30000) return;
+            lastRep = Date.now();
+            try {
+                await setDoc(doc(col('reports'), currentUser.uid), { nick: $('player-nick').value.trim() || 'Anonym', reason: info.reason || '', mean: info.mean || 0, sd: info.sd || 0, sample: info.sample || '',
+                    coins: Math.floor(window.gameScore || 0), cps: Math.floor(window.gameCps || 0), lastAt: Date.now(), count: increment(1) }, { merge: true });
+            } catch (e) { console.warn('Report:', e.code); }
+        };
+
+        function applyPenalty(p) {
+            if (!loaded) { setTimeout(() => applyPenalty(p), 700); return; }
+            if (p.ts === lastPen) return; lastPen = p.ts;
+            api().penalty(p); toast('⚠️ Admin ti upravil účet (podezření na autoclicker).', 8000);
+            window.saveGameProgress(false, true).then(() => deleteDoc(doc(col('penalties'), currentUser.uid)).catch(() => {}));
+        }
+
+        function renderAdminList() {
+            const el = $('admin-list'); if (!el) return;
+            if (!reports.length) { el.innerHTML = '<div class="text-xs text-slate-500">Žádné reporty. 👍</div>'; return; }
+            el.innerHTML = reports.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0)).map(r =>
+                '<div class="bg-slate-800 rounded-xl p-3 text-xs space-y-1.5"><div class="flex justify-between"><b class="text-amber-300 text-sm">' + escapeHtml(r.nick || '?') + '</b><span class="text-red-400 font-bold">' + (r.count || 0) + '× nahlášen</span></div>' +
+                '<div class="text-slate-400">' + escapeHtml(r.reason || '') + ' · průměr ' + (r.mean || 0).toFixed(1) + ' ms, odchylka ' + (r.sd || 0).toFixed(1) + ' ms</div>' +
+                '<div class="text-slate-500">Coiny: ' + n0(r.coins) + ' · CPS: ' + n0(r.cps) + ' · ' + new Date(r.lastAt || 0).toLocaleString('cs-CZ') + '</div>' +
+                '<div class="flex gap-2 items-center"><input id="ac-' + r.id + '" type="number" min="1" max="100" value="50" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white"><span>% coinů a CPS</span></div>' +
+                '<div class="flex gap-2 flex-wrap"><button data-u="' + r.id + '" onclick="adminAct(this.dataset.u,\'cut\')" class="bg-amber-600 px-2 py-1 rounded font-bold">✂️ Sebrat %</button>' +
+                '<button data-u="' + r.id + '" onclick="adminAct(this.dataset.u,\'reset\')" class="bg-red-700 px-2 py-1 rounded font-bold">🗑 Reset účtu</button>' +
+                '<button data-u="' + r.id + '" onclick="adminAct(this.dataset.u,\'dismiss\')" class="bg-slate-600 px-2 py-1 rounded">✔ Zahodit</button></div></div>').join('');
+        }
+        window.adminAct = async (uid, act) => {
+            if (!isAdmin()) return;
+            try {
+                if (act === 'dismiss') { await deleteDoc(doc(col('reports'), uid)); return; }
+                const pct = Math.min(100, Math.max(1, Number($('ac-' + uid).value) || 50));
+                if (act === 'reset' && !confirm('Opravdu resetovat celý účet?')) return;
+                await setDoc(doc(col('penalties'), uid), act === 'reset' ? { reset: true, coinsPct: 100, upgradesPct: 100, ts: Date.now() } : { reset: false, coinsPct: pct, upgradesPct: pct, ts: Date.now() });
+                toast('Trest odeslán – projeví se, jakmile bude hráč online.', 3500);
+            } catch (e) { toast('Chyba: ' + e.code, 4000); }
+        };
 
         // ===== LIMITOVANÝ DROP: globální sklad (sdílený mezi všemi hráči) =====
         const dropRef = (slot) => doc(db, 'artifacts', APP_ID, 'public', 'data', 'drops', 'slot_' + slot);
@@ -326,7 +674,7 @@
 
     <!-- HERNÍ LOGIKA -->
     <script>
-        const config = {"currency":"Goon Coins","emoji":"🍆","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":1000000000,"cps":100000,"clickPower":10000},{"name":"Úmělá vagína","price":10000000000,"cps":1000000,"clickPower":200000},{"name":"Umělé sperma","price":30000000000,"cps":3000000,"clickPower":300000}]};
+        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":1000000000,"cps":100000,"clickPower":10000}]};
 
         // ===== LIMITOVANÉ DROPY =====
         // Každých intervalMin minut se objeví drop a je k dispozici durationSec sekund.
@@ -339,13 +687,19 @@
         //   cps/clickPower – trvalý bonus za každý koupený kus
         // Dropy se střídají popořadě (1., 2., 3., ... a znovu od začátku).
         const limitedDrops = [
-            { id: 'sexy-prádelko',  emoji: '👔', name: 'Sexy prádelko',   price: 5000000,   cps: 90000,  clickPower: 50000, stock: 10, maxPerPlayer: 1000 },
-            { id: 'masturbacni-rukavice',  emoji: '✋', name: 'Masturbační rukavice', price: 200000,  cps: 120000, clickPower: 50000, stock: 5, maxPerPlayer: 1000 },
-            { id: 'masturbator-natuszkovebaterie',  emoji: '🔋', name: 'Masturbátor na tužkové baterky', price: 1000000, cps: 600000, clickPower: 200000, stock: 2, maxPerPlayer: 1000 }
+            { id: 'sexy-prádelko',  emoji: '👔', name: 'Sexy prádelko',   price: 5000000,   cps: 900000,  clickPower: 90000, stock: 10, maxPerPlayer: 1000000 },
+            { id: 'masturbacni-rukavice',  emoji: '✋', name: 'Masturbační rukavice', price: 200000,  cps: 120000, clickPower: 50000, stock: 5, maxPerPlayer: 100000 },
+            { id: 'masturbator-natuszkovebaterie',  emoji: '🔋', name: 'Masturbátor na tužkové baterky', price: 1000000, cps: 600000, clickPower: 200000, stock: 2, maxPerPlayer: 1000000 }
         ];
 
         let score = 0, totalCps = 0, clickPower = 1, totalClicks = 0;
         let limited = { owned: {}, slot: 0, slotBought: 0 };
+        const meta = { avatar: '🗿', font: 'sans', color: '#fbbf24', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, joined: Date.now() };
+
+        // ===== KOLO ŠTĚSTÍ =====
+        // cost = cena zatočení, w = váha (šance). Limitované dropy se do kola přidávají automaticky (w: 2 každý).
+        const WHEEL = { cost: 1000000, prizes: [{ t: 'nothing', w: 80 }, { t: 'coins', frac: 0.5, w: 14 }].concat(limitedDrops.map(d => ({ t: 'drop', id: d.id, w: 2 }))) };
+        window.WHEEL = WHEEL; window.limitedDrops = limitedDrops;
 
         const upgrades = config.upgrades.map(u => ({
             name: u.name, basePrice: u.price, currentPrice: u.price,
@@ -358,6 +712,7 @@
             window.gameCps = totalCps;
             window.gameClickPower = clickPower;
             window.gameLimited = limited;
+            window.gameMeta = meta;
             window.gameUpgradesState = upgrades.map(u => ({ count: u.count, currentPrice: u.currentPrice }));
         }
 
@@ -382,6 +737,8 @@
 
             totalCps = 0;
             clickPower = 1;
+            if (data.meta) Object.assign(meta, data.meta);
+            applyEmoji();
             if (data.limited && data.limited.owned) {
                 limited = { owned: data.limited.owned, slot: data.limited.slot || 0, slotBought: data.limited.slotBought || 0 };
             }
@@ -411,8 +768,11 @@
         ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev =>
             document.addEventListener(ev, (e) => e.preventDefault()));
 
-        document.getElementById('header-emoji').textContent = config.emoji;
-        document.getElementById('main-click-btn').textContent = config.emoji;
+        function applyEmoji() {
+            ['header-emoji', 'main-click-btn', 'duel-btn'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = meta.emoji; });
+        }
+        window.applyEmoji = applyEmoji;
+        applyEmoji();
         document.getElementById('currency-label').textContent = config.currency;
 
         const scoreUI = document.getElementById('score-val');
@@ -496,6 +856,7 @@
         }
 
         document.getElementById('main-click-btn').addEventListener('click', (e) => {
+            mainDet(e);
             score += clickPower;
             totalClicks++;
 
@@ -520,6 +881,60 @@
         setInterval(() => {
             if (totalCps > 0) { score += totalCps; syncGlobalState(); updateUI(); }
         }, 1000);
+
+        // ===== TOAST + HERNÍ API PRO MODUL =====
+        function showToast(text, ms) {
+            const t = document.createElement('div');
+            t.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[400] bg-red-700/95 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-2xl max-w-[90%] text-center';
+            t.textContent = text; document.body.appendChild(t); setTimeout(() => t.remove(), ms || 4000);
+        }
+        function recalcTotals() {
+            totalCps = 0; clickPower = 1;
+            upgrades.forEach(u => { totalCps += u.count * u.cps; clickPower += u.count * u.clickPower; });
+            limitedDrops.forEach(d => { const c = limited.owned[d.id] || 0; totalCps += c * d.cps; clickPower += c * d.clickPower; });
+        }
+        window.gameAPI = {
+            score: () => score,
+            addCoins(n) { score = Math.max(0, score + n); syncGlobalState(); updateUI(); },
+            giveDrop(id) { limited.owned[id] = (limited.owned[id] || 0) + 1; recalcTotals(); syncGlobalState(); updateUI(); },
+            penalty(p) {
+                const c = Math.min(100, Math.max(0, Number(p.coinsPct) || 0)), u = Math.min(100, Math.max(0, Number(p.upgradesPct) || 0));
+                if (p.reset) {
+                    score = 0; totalClicks = 0; upgrades.forEach(x => { x.count = 0; x.currentPrice = x.basePrice; }); limited = { owned: {}, slot: 0, slotBought: 0 };
+                } else {
+                    score = Math.floor(score * (1 - c / 100));
+                    upgrades.forEach(x => { x.count -= Math.round(x.count * u / 100); x.currentPrice = Math.ceil(x.basePrice * Math.pow(1.15, x.count)); });
+                    for (const k in limited.owned) limited.owned[k] -= Math.round(limited.owned[k] * u / 100);
+                }
+                recalcTotals(); syncGlobalState(); updateUI();
+            }
+        };
+
+        // ===== DETEKCE AUTOCLICKERŮ =====
+        // Hlídá pravidelnost intervalů mezi kliky. Člověk má odchylku desítky ms, autoclicker jednotky.
+        // Ladění: sdMs = max. směrodatná odchylka (ms), cv = max. poměr odchylka/průměr, minSamples = kolik kliků analyzovat.
+        const AC = { minSamples: 30, sdMs: 10, cv: 0.03, consecutive: 10 };
+        function makeDetector(onFlag) {
+            let iv = [], last = 0, sus = 0;
+            return function (e) {
+                if (!e.isTrusted) { onFlag('Syntetické kliky (isTrusted=false)', {}); return; }
+                const now = performance.now();
+                if (last && now - last < 2000) { iv.push(now - last); if (iv.length > AC.minSamples + 10) iv.shift(); } else { iv = []; sus = 0; }
+                last = now;
+                if (iv.length < AC.minSamples) return;
+                const m = iv.reduce((a, b) => a + b, 0) / iv.length, sd = Math.sqrt(iv.reduce((a, b) => a + (b - m) * (b - m), 0) / iv.length);
+                if (sd < AC.sdMs || sd / m < AC.cv) {
+                    if (++sus >= AC.consecutive) { sus = 0; const sample = iv.slice(-8).map(x => x.toFixed(1)).join(', '); iv = []; onFlag('Pravidelné intervaly kliků', { mean: m, sd: sd, sample: sample }); }
+                } else sus = 0;
+            };
+        }
+        let acCool = 0;
+        function flagAutoclick(reason, info) {
+            if (Date.now() < acCool) return; acCool = Date.now() + 60000;
+            showToast('⚠️ Detekován autoclicker (' + reason + ')! Admin byl upozorněn.', 6000);
+            if (window.reportAutoclicker) window.reportAutoclicker(Object.assign({ reason: reason }, info || {}));
+        }
+        const mainDet = makeDetector(flagAutoclick);
 
         // ===== LOGIKA LIMITOVANÉHO DROPU =====
         // Všichni online vidí stejný drop: odvozuje se z aktuálního času (okno po 10 minutách).
