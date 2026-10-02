@@ -9,6 +9,7 @@
         html, body { touch-action: manipulation; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
         input { font-size: 16px !important; }
         input, textarea, select { user-select: text; -webkit-user-select: text; }
+        @keyframes megaFlash { 0% { opacity: 0; } 8% { opacity: 1; } 100% { opacity: 0; } }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -55,12 +56,13 @@
     </div>
 
     <div id="duel-ov" class="hidden fixed inset-0 z-[300] bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center">
-        <div id="duel-title" class="text-2xl font-black mb-4"></div>
+        <div id="duel-title" class="text-2xl font-black mb-3"></div>
+        <div id="duel-cards" class="w-full max-w-sm grid grid-cols-2 gap-2 mb-4 text-xs"></div>
         <div class="w-full max-w-sm space-y-3 mb-6">
             <div><div class="text-xs flex justify-between mb-1"><span>Ty</span><span id="duel-me-c"></span></div><div class="h-3 bg-slate-800 rounded"><div id="duel-me-b" class="h-3 bg-amber-400 rounded" style="width:0"></div></div></div>
             <div><div class="text-xs flex justify-between mb-1"><span id="duel-opp-n"></span><span id="duel-opp-c"></span></div><div class="h-3 bg-slate-800 rounded"><div id="duel-opp-b" class="h-3 bg-red-500 rounded" style="width:0"></div></div></div>
         </div>
-        <button id="duel-btn" onclick="duelClick(event)" class="click-emoji text-8xl focus:outline-none">🍑</button>
+        <button id="duel-btn" onclick="duelClick(event)" class="click-emoji text-7xl focus:outline-none">🍑</button>
         <div id="duel-msg" class="mt-4 text-sm text-slate-300"></div>
         <button id="duel-close" onclick="closeDuel()" class="hidden mt-4 bg-slate-700 px-4 py-2 rounded-lg text-sm">Zavřít</button>
     </div>
@@ -319,7 +321,7 @@
                 const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '.';
                 const rowClass = isMe ? 'bg-purple-950/40 font-bold text-amber-300' : 'text-slate-300';
                 return '<tr data-u="' + p.id + '" onclick="openProfile(this.dataset.u)" class="cursor-pointer ' + rowClass + ' hover:bg-slate-900 transition"><td class="py-2.5 font-semibold">' + medal + '</td>' +
-                    '<td class="py-2.5 truncate max-w-[110px]" style="' + nickStyle(p) + '">' + escapeHtml((p.avatar || '') + ' ' + (p.nick || 'Hráč')) + '</td>' +
+                    '<td class="py-2.5 truncate max-w-[110px]" style="' + nickStyle(p) + '">' + av(p, 16) + ' ' + escapeHtml(p.nick || 'Hráč') + '</td>' +
                     '<td class="py-2.5 text-right font-mono text-amber-400">' + Math.floor(p.coins || 0).toLocaleString('cs-CZ') + '</td></tr>';
             }).join('');
         }
@@ -334,6 +336,7 @@
         const AVATARS = ['🗿', '😎', '🔥', '👑', '🦄', '🐉', '💀', '🤡', '🍒', '🍑', '🍆'];
         let allPlayers = [], reports = [], myDuels = {}, unsubs = [], modalName = null, shownInv = {};
         let activeDuel = null, duelClicks = 0, lastProg = 0, duelDet = null, duelTimer = null, spinning = false, lastPen = 0, lastRep = 0;
+        let duelTimes = [], duelMax = 0, oppSamples = [], boomDone = {}, autoSpin = false, autoN = 0;
         const api = () => window.gameAPI, meta = () => window.gameMeta || {};
         const isAdmin = () => !!(currentUser && currentUser.email === ADMIN_EMAIL);
         const col = (n) => collection(db, 'artifacts', APP_ID, 'public', 'data', n);
@@ -341,7 +344,12 @@
         const n0 = (n) => Math.floor(n || 0).toLocaleString('cs-CZ');
         const toast = (t, ms) => window.showToast(t, ms);
         const nickStyle = (p) => 'font-family:' + (FONTS[p.nickFont] || FONTS.sans).replace(/"/g, "'") + ';color:' + (/^#[0-9a-f]{6}$/i.test(p.nickColor || '') ? p.nickColor : '#fbbf24');
-        const nm = (p) => escapeHtml((p.avatar || '🗿') + ' ' + (p.nick || 'Hráč'));
+        // Obrázek se zobrazí jen pokud je to malý JPEG data-URL (jiný obsah se ignoruje)
+        const IMG_OK = /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]{20,24000}$/;
+        const av = (p, px) => IMG_OK.test(p.img || '')
+            ? '<img src="' + p.img + '" class="inline-block rounded-full object-cover align-middle" style="width:' + px + 'px;height:' + px + 'px">'
+            : '<span style="font-size:' + Math.round(px * 0.9) + 'px;line-height:1">' + escapeHtml(p.avatar || '🗿') + '</span>';
+        const nm = (p) => av(p, 18) + ' ' + escapeHtml(p.nick || 'Hráč');
         const stat = (l, v) => '<div class="bg-slate-800 rounded-lg p-2"><div class="text-[10px] text-slate-400">' + l + '</div><div class="text-sm font-bold text-amber-300">' + v + '</div></div>';
         const inputCls = 'w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white';
 
@@ -351,7 +359,8 @@
                 cps: Math.floor(window.gameCps || 0), clickPower: window.gameClickPower || 1,
                 ups: (window.gameUpgradesState || []).reduce((a, u) => a + u.count, 0), drops: Object.values(l).reduce((a, b) => a + b, 0),
                 avatar: m.avatar || '🗿', nickFont: m.font || 'sans', nickColor: m.color || '#fbbf24', bio: m.bio || '',
-                wins: m.wins || 0, losses: m.losses || 0, spins: m.spins || 0, jackpots: m.jackpots || 0, joined: m.joined || Date.now() };
+                wins: m.wins || 0, losses: m.losses || 0, spins: m.spins || 0, jackpots: m.jackpots || 0, joined: m.joined || Date.now(),
+                bestKps: m.bestKps || 0, bestTime: m.bestTime || 0, img: m.img || '' };
         }
 
         // ---------- MODALY ----------
@@ -376,10 +385,10 @@
                 const p = me ? Object.assign(pubProfile(buildState()), { id: arg }) : allPlayers.find(x => x.id === arg);
                 if (!p) { closeModal(); return; }
                 title = 'Profil';
-                B.innerHTML = '<div class="text-center mb-3"><div class="text-6xl">' + escapeHtml(p.avatar || '🗿') + '</div><div class="text-2xl font-black mt-1" style="' + nickStyle(p) + '">' + escapeHtml(p.nick || 'Hráč') + '</div>' +
+                B.innerHTML = '<div class="text-center mb-3"><div class="flex justify-center">' + av(p, 72) + '</div><div class="text-2xl font-black mt-1" style="' + nickStyle(p) + '">' + escapeHtml(p.nick || 'Hráč') + '</div>' +
                     '<div class="text-xs text-slate-400">' + (isOnline(p) || me ? '🟢 Online' : '⚫ Naposledy ' + new Date(p.lastSeen || 0).toLocaleString('cs-CZ')) + '</div><div class="text-sm text-slate-300 mt-2 italic">' + escapeHtml(p.bio || '') + '</div></div>' +
                     '<div class="grid grid-cols-2 gap-2">' + stat('Goon Coins', n0(p.coins)) + stat('Naklikáno', n0(p.clicks)) + stat('CPS', n0(p.cps)) + stat('Síla kliku', n0(p.clickPower)) +
-                    stat('Upgradů', n0(p.ups)) + stat('Limitovek', n0(p.drops)) + stat('Souboje V / P', (p.wins || 0) + ' / ' + (p.losses || 0)) + stat('Kolo: výhry / točení', (p.jackpots || 0) + ' / ' + (p.spins || 0)) + '</div>' +
+                    stat('Upgradů', n0(p.ups)) + stat('Limitovek', n0(p.drops)) + stat('Souboje V / P', (p.wins || 0) + ' / ' + (p.losses || 0)) + stat('Kolo: výhry / točení', (p.jackpots || 0) + ' / ' + (p.spins || 0)) + stat('Rekord kliků/s', n0(p.bestKps)) + stat('Nejrychlejší výhra', p.bestTime ? Number(p.bestTime).toFixed(1) + ' s' : '–') + '</div>' +
                     '<div class="text-[10px] text-slate-500 mt-2 text-center">Ve hře od ' + new Date(p.joined || 0).toLocaleDateString('cs-CZ') + '</div>' +
                     (me ? '<button onclick="openModal(\'settings\')" class="mt-3 w-full bg-slate-700 py-2 rounded-lg text-sm">✏️ Upravit profil</button>'
                         : sendHTML(p) + (isOnline(p) ? '<button data-u="' + p.id + '" onclick="openModal(\'duel\')" class="mt-3 w-full bg-red-600 py-2 rounded-lg text-sm font-bold">⚔️ Vyzvat na souboj</button>' : ''));
@@ -390,18 +399,20 @@
                 B.innerHTML = '<div class="text-xs text-slate-400 mb-2">Cena za zatočení: <b class="text-amber-400">' + n0(W.cost) + '</b>. Většinou nic, ale můžeš vyhrát limitovaný upgrade!</div>' +
                     '<div id="wheel-disp" class="text-7xl text-center my-3">🎡</div><div id="wheel-msg" class="text-center text-sm min-h-[1.5rem] mb-2"></div>' +
                     '<button onclick="spinWheel()" class="w-full bg-purple-600 hover:bg-purple-500 py-2.5 rounded-lg font-bold">Zatočit (' + n0(W.cost) + ')</button>' +
+                    '<div class="flex items-center gap-2 mt-2"><button id="auto-btn" onclick="toggleAutoSpin()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-sm font-bold">🔁 Auto spin</button><label class="text-xs flex items-center gap-1 whitespace-nowrap"><input id="auto-stop" type="checkbox" checked> stop po výhře</label></div>' +
                     '<div class="mt-3 text-[11px] text-slate-400 space-y-0.5">' + W.prizes.map(x => '<div class="flex justify-between"><span>' + label(x) + '</span><span>' + (x.w / tot * 100).toFixed(1) + ' %</span></div>').join('') + '</div>';
             } else if (name === 'settings') {
                 const m = meta();
                 const sel = (id, opts, cur) => '<select id="' + id + '" class="' + inputCls + '">' + opts.map(o => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>';
                 title = '⚙️ Nastavení';
                 B.innerHTML = '<div class="text-xs text-slate-400 mb-1">Emoji na klikání</div><div id="emoji-pick" class="flex gap-2 mb-4"></div>' +
-                    '<div class="text-xs text-slate-400 mb-1">Profilovka</div>' + sel('set-avatar', AVATARS.map(a => [a, a]), m.avatar) +
+                    '<div class="text-xs text-slate-400 mb-1">Profilovka (emoji)</div>' + sel('set-avatar', AVATARS.map(a => [a, a]), m.avatar) +
+                    '<div class="text-xs text-slate-400 mt-3 mb-1">Vlastní obrázek (nahradí emoji)</div><div class="flex items-center gap-3"><div id="img-prev"></div><div class="flex-1 space-y-1"><input id="set-img" type="file" accept="image/*" onchange="uploadAvatar(this)" class="w-full text-xs text-slate-300"><button onclick="removeAvatar()" class="text-xs bg-slate-700 px-2 py-1 rounded">Odebrat obrázek</button></div></div>' +
                     '<div class="text-xs text-slate-400 mt-3 mb-1">Styl písma jména</div>' + sel('set-font', [['sans', 'Normální'], ['serif', 'Serif'], ['mono', 'Mono'], ['comic', 'Comic'], ['impact', 'Impact']], m.font) +
                     '<div class="text-xs text-slate-400 mt-3 mb-1">Barva jména</div><input id="set-color" type="color" value="' + (m.color || '#fbbf24') + '" class="w-full h-10 bg-slate-950 border border-slate-700 rounded-lg">' +
                     '<div class="text-xs text-slate-400 mt-3 mb-1">O mně</div><input id="set-bio" maxlength="60" value="' + escapeHtml(m.bio || '') + '" class="' + inputCls + '">' +
                     '<button onclick="saveProfile()" class="mt-4 w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg">💾 Uložit profil</button>';
-                renderEmojiPick();
+                renderEmojiPick(); renderImgPrev();
             } else if (name === 'admin') {
                 if (!isAdmin()) { closeModal(); return; }
                 title = '🛡️ Admin – podezření na autoclicker';
@@ -438,25 +449,67 @@
             window.saveGameProgress(false); toast('✅ Profil uložen', 2000);
         };
 
+        // ---------- VLASTNÍ PROFILOVKA ----------
+        function renderImgPrev() { const el = $('img-prev'); if (el) el.innerHTML = av({ img: meta().img, avatar: meta().avatar }, 48); }
+        window.uploadAvatar = (inp) => {
+            const f = inp.files && inp.files[0]; if (!f) return;
+            if (!f.type.startsWith('image/')) { toast('Vyber obrázek.', 2500); return; }
+            const rd = new FileReader();
+            rd.onload = () => {
+                const im = new Image();
+                im.onload = () => {
+                    const c = document.createElement('canvas'); c.width = c.height = 96;
+                    const x = c.getContext('2d'), sq = Math.min(im.width, im.height);
+                    x.fillStyle = '#fff'; x.fillRect(0, 0, 96, 96);
+                    x.drawImage(im, (im.width - sq) / 2, (im.height - sq) / 2, sq, sq, 0, 0, 96, 96);
+                    let q = 0.75, d = c.toDataURL('image/jpeg', q);
+                    while (d.length > 20000 && q > 0.3) { q -= 0.1; d = c.toDataURL('image/jpeg', q); }
+                    if (!IMG_OK.test(d)) { toast('Obrázek se nepodařilo zpracovat.', 3000); return; }
+                    meta().img = d; renderImgPrev(); window.saveGameProgress(false); toast('✅ Profilovka nahrána', 2500);
+                };
+                im.onerror = () => toast('Tento soubor nejde načíst jako obrázek.', 3000);
+                im.src = rd.result;
+            };
+            rd.readAsDataURL(f);
+        };
+        window.removeAvatar = () => { meta().img = ''; renderImgPrev(); window.saveGameProgress(false); };
+
         // ---------- KOLO ŠTĚSTÍ ----------
-        window.spinWheel = async () => {
+        window.spinWheel = async (fast) => {
             const W = window.WHEEL;
-            if (spinning) return;
-            if (api().score() < W.cost) { toast('Nemáš dost coinů.', 2500); return; }
+            if (spinning) return 'busy';
+            if (api().score() < W.cost) { toast('Nemáš dost coinů.', 2500); return 'broke'; }
             spinning = true; api().addCoins(-W.cost); meta().spins = (meta().spins || 0) + 1;
             const disp = $('wheel-disp'), faces = ['🎡', '💨', '🪙', '✨', '💎', '🍆', '🍑', '🍒']; let i = 0;
             const iv = setInterval(() => { if (disp) disp.textContent = faces[i++ % faces.length]; }, 90);
-            await new Promise(r => setTimeout(r, 1800)); clearInterval(iv);
+            await new Promise(r => setTimeout(r, fast ? 600 : 1800)); clearInterval(iv);
             const tot = W.prizes.reduce((a, x) => a + x.w, 0); let r = Math.random() * tot, pr = W.prizes[0];
             for (const x of W.prizes) { if ((r -= x.w) < 0) { pr = x; break; } }
             let face = '💨', msg = 'Nic… zkus štěstí znovu.';
             if (pr.t === 'drop') { const d = window.limitedDrops.find(x => x.id === pr.id); api().giveDrop(pr.id); meta().jackpots = (meta().jackpots || 0) + 1; face = d.emoji; msg = '🎉 JACKPOT! Vyhrál jsi ' + d.name + '!'; window.triggerExplosion({ text: '🎉 JACKPOT!', color: '#fbbf24' }, 120); }
             else if (pr.t === 'coins') { const back = Math.floor(W.cost * pr.frac); api().addCoins(back); face = '🪙'; msg = 'Vyhrál jsi ' + n0(back) + ' coinů zpět.'; }
             if ($('wheel-disp')) { $('wheel-disp').textContent = face; $('wheel-msg').textContent = msg; }
-            spinning = false; window.saveGameProgress(false);
+            spinning = false; window.saveGameProgress(false); return pr.t;
         };
 
-// ---------- SYNCHRONIZACE HODIN SE SERVEREM ----------
+// ---------- AUTO SPIN ----------
+        function updateAutoBtn() { const b = $('auto-btn'); if (b) b.textContent = autoSpin ? '⏹ Zastavit auto (' + autoN + '×)' : '🔁 Auto spin'; }
+        window.toggleAutoSpin = async () => {
+            if (autoSpin) { autoSpin = false; updateAutoBtn(); return; }
+            autoSpin = true; autoN = 0; updateAutoBtn();
+            const stopOnWin = !$('auto-stop') || $('auto-stop').checked;
+            while (autoSpin && modalName === 'wheel') {
+                const r = await window.spinWheel(true);
+                if (r === 'broke') break;
+                if (r === 'busy') { await new Promise(x => setTimeout(x, 300)); continue; }
+                autoN++; updateAutoBtn();
+                if (r === 'drop' && stopOnWin) break;
+                await new Promise(x => setTimeout(x, 350));
+            }
+            autoSpin = false; updateAutoBtn();
+        };
+
+        // ---------- SYNCHRONIZACE HODIN SE SERVEREM ----------
         // Každý prohlížeč má trochu jiný čas. Změříme rozdíl proti Firestore serveru (3 pokusy, vybere se nejrychlejší)
         // a čas souboje pak počítáme všichni stejně: serverNow().
         let clockOffset = 0, clockTimer = null;
@@ -521,6 +574,7 @@
 
         function onDuel(d) {
             const me = currentUser.uid, now = serverNow();
+            if (d.id === activeDuel) { const o = d.from === me ? d.to : d.from; oppSamples.push({ t: performance.now(), v: (d.progress || {})[o] || 0 }); if (oppSamples.length > 10) oppSamples.shift(); }
             if (d.status === 'pending' && d.to === me && now - d.createdAt < 60000 && !shownInv[d.id]) { shownInv[d.id] = 1; showInvite(d); }
             else if (d.status === 'declined' && d.from === me && now - d.createdAt < 120000 && !shownInv[d.id]) { shownInv[d.id] = 1; toast(d.toNick + ' odmítl souboj.', 4000); }
             else if (d.status === 'active' && d.startAt && now - d.startAt < 120000 && activeDuel !== d.id) openDuel(d);
@@ -528,20 +582,40 @@
         }
 
         function openDuel(d) {
-            activeDuel = d.id; duelClicks = 0;
+            activeDuel = d.id; duelClicks = 0; duelTimes = []; duelMax = 0; oppSamples = []; duelCards(d);
             duelDet = window.makeDetector((r, i) => { duelClicks = 0; window.flagAutoclick(r, i); });
             $('duel-ov').classList.remove('hidden'); $('duel-btn').classList.remove('hidden'); $('duel-close').classList.add('hidden');
             window.applyEmoji(); clearInterval(duelTimer); duelTimer = setInterval(renderDuel, 120); renderDuel();
+        }
+        function duelCards(d) {
+            const me = currentUser.uid, opp = d.from === me ? d.to : d.from;
+            const mine = Object.assign(pubProfile(buildState()), { id: me });
+            const theirs = allPlayers.find(x => x.id === opp) || { nick: d.from === me ? d.toNick : d.fromNick };
+            const card = (p) => '<div class="bg-slate-900 border border-slate-700 rounded-xl p-2"><div class="flex justify-center">' + av(p, 40) + '</div>' +
+                '<div class="font-bold truncate" style="' + nickStyle(p) + '">' + escapeHtml(p.nick || '') + '</div>' +
+                '<div class="text-[10px] text-slate-400 leading-tight mt-1">V / P ' + (p.wins || 0) + ' / ' + (p.losses || 0) + '<br>CPS ' + n0(p.cps) + ' · klik ' + n0(p.clickPower) + '<br>Rekord ' + n0(p.bestKps) + ' kl/s</div></div>';
+            $('duel-cards').innerHTML = card(mine) + card(theirs);
         }
         function renderDuel() {
             const d = myDuels[activeDuel]; if (!d) return;
             const me = currentUser.uid, opp = d.from === me ? d.to : d.from, left = d.startAt - serverNow();
             const oppN = d.from === me ? d.toNick : d.fromNick, fin = d.status === 'finished';
             const mine = fin && d.winner === me ? 100 : Math.min(100, duelClicks), theirs = fin && d.winner === opp ? 100 : Math.min(100, (d.progress || {})[opp] || 0);
+            const now = performance.now(), kps = duelTimes.filter(t => now - t <= 1000).length;
+            const a = oppSamples[0], b = oppSamples[oppSamples.length - 1];
+            const oppKps = a && b && b.t > a.t ? Math.max(0, (b.v - a.v) / ((b.t - a.t) / 1000)) : 0;
             $('duel-title').textContent = fin ? (d.winner === me ? '🏆 VYHRÁL JSI!' : '💀 Prohrál jsi') : left > 0 ? 'Start za ' + Math.ceil(left / 1000) : 'KLIKEJ! První do 100';
             $('duel-me-c').textContent = mine + ' / 100'; $('duel-me-b').style.width = mine + '%';
             $('duel-opp-n').textContent = oppN; $('duel-opp-c').textContent = theirs + ' / 100'; $('duel-opp-b').style.width = theirs + '%';
-            $('duel-msg').textContent = 'Sázka: ' + n0(d.stakeFrom) + ' vs ' + n0(d.stakeTo);
+            const stake = 'Sázka: ' + n0(d.stakeFrom) + ' vs ' + n0(d.stakeTo);
+            if (fin) {
+                const t = Math.max(0.1, ((d.finishedAt || serverNow()) - d.startAt) / 1000);
+                $('duel-msg').innerHTML = stake + '<br>⏱ Čas: <b>' + t.toFixed(2) + ' s</b> · tvůj průměr <b>' + (mine / t).toFixed(1) + ' kl/s</b> · max <b>' + duelMax + ' kl/s</b><br>' +
+                    escapeHtml(oppN) + ': ' + theirs + ' / 100 (≈ ' + (theirs / t).toFixed(1) + ' kl/s)';
+                if (!boomDone[d.id]) { boomDone[d.id] = 1; window.megaExplosion(); }
+            } else {
+                $('duel-msg').innerHTML = stake + (left > 0 ? '' : '<br>⚡ Ty: <b>' + kps + '</b> kl/s (max ' + duelMax + ') · ' + escapeHtml(oppN) + ': <b>' + oppKps.toFixed(1) + '</b> kl/s');
+            }
             if (fin || (-left) > 110000) { $('duel-btn').classList.add('hidden'); $('duel-close').classList.remove('hidden'); clearInterval(duelTimer); }
         }
         window.closeDuel = () => { clearInterval(duelTimer); activeDuel = null; $('duel-ov').classList.add('hidden'); };
@@ -551,13 +625,14 @@
             if (!d || d.status !== 'active' || serverNow() < d.startAt || duelClicks >= 100) return;
             if (duelDet) duelDet(e);
             duelClicks++;
+            const pn = performance.now(); duelTimes.push(pn); while (duelTimes.length && pn - duelTimes[0] > 1000) duelTimes.shift(); duelMax = Math.max(duelMax, duelTimes.length);
             const ref = doc(col('duels'), d.id), now = Date.now();
             if (duelClicks >= 100) {
                 try {
                     await runTransaction(db, async (tx) => {
                         const x = (await tx.get(ref)).data();
                         if (x.status !== 'active' || x.winner) return;
-                        tx.update(ref, { status: 'finished', winner: currentUser.uid, finishedAt: Date.now(), ['progress.' + currentUser.uid]: 100 });
+                        tx.update(ref, { status: 'finished', winner: currentUser.uid, finishedAt: serverNow(), ['progress.' + currentUser.uid]: 100 });
                     });
                 } catch (er) { console.warn(er); }
             } else if (now - lastProg > 350) { lastProg = now; updateDoc(ref, { ['progress.' + currentUser.uid]: duelClicks }).catch(() => {}); }
@@ -577,6 +652,7 @@
             if (!ok) return;
             const won = d.winner === me, myStake = d.from === me ? d.stakeFrom : d.stakeTo, loserStake = d.winner === d.from ? d.stakeTo : d.stakeFrom;
             const m = meta();
+            if (activeDuel === d.id) { m.bestKps = Math.max(m.bestKps || 0, duelMax); if (won) { const tt = (d.finishedAt - d.startAt) / 1000; if (tt > 0 && (!m.bestTime || tt < m.bestTime)) m.bestTime = tt; } }
             if (won) { api().addCoins(loserStake); m.wins = (m.wins || 0) + 1; toast('🏆 Vyhrál jsi souboj! +' + n0(loserStake), 5000); }
             else { api().addCoins(-myStake); m.losses = (m.losses || 0) + 1; toast('💀 Prohrál jsi souboj. −' + n0(myStake), 5000); }
             window.saveGameProgress(false, true);
@@ -645,6 +721,7 @@ async function wipeOwnAccount() {
             if (!loaded) { setTimeout(() => applyPenalty(p), 700); return; }
             if (p.ts === lastPen) return; lastPen = p.ts;
             api().penalty(p);
+            if (p.removeImage) { meta().img = ''; toast('⚠️ Admin odstranil tvůj profilový obrázek.', 6000); window.saveGameProgress(false, true).then(() => deleteDoc(doc(col('penalties'), currentUser.uid)).catch(() => {})); return; }
             if (p.delete) { wipeOwnAccount(); return; }
             toast('⚠️ Admin ti upravil účet (podezření na autoclicker).', 8000);
             window.saveGameProgress(false, true).then(() => deleteDoc(doc(col('penalties'), currentUser.uid)).catch(() => {}));
@@ -667,13 +744,17 @@ window.renderAdminPlayers = () => {
             const q = (($('adm-q') || {}).value || '').trim().toLowerCase();
             const list = allPlayers.filter(p => p.id !== currentUser.uid && (!q || (p.nick || '').toLowerCase().includes(q) || p.id.toLowerCase().includes(q))).slice(0, 50);
             el.innerHTML = list.length ? list.map(p => '<div class="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2"><div class="min-w-0"><div class="text-sm truncate" style="' + nickStyle(p) + '">' + nm(p) + '</div>' +
-                '<div class="text-[10px] text-slate-500">' + (isOnline(p) ? '🟢' : '⚫') + ' ' + n0(p.coins) + ' · ' + escapeHtml(p.id.slice(0, 8)) + '…</div></div>' +
+                '<div class="text-[10px] text-slate-500">' + (isOnline(p) ? '🟢' : '⚫') + ' ' + n0(p.coins) + ' · ' + escapeHtml(p.id.slice(0, 8)) + '…</div></div>' + (p.img ? '<button data-u="' + p.id + '" onclick="adminAct(this.dataset.u,\'noimg\')" class="bg-slate-600 hover:bg-slate-500 text-xs font-bold px-2 py-1.5 rounded-lg mr-1">🖼✖</button>' : '') +
                 '<button data-u="' + p.id + '" onclick="adminAct(this.dataset.u,\'delete\')" class="bg-red-700 hover:bg-red-600 text-xs font-bold px-3 py-1.5 rounded-lg">🗑 Smazat</button></div>').join('') : '<div class="text-xs text-slate-500">Nikdo nenalezen.</div>';
         };
         window.adminAct = async (uid, act) => {
             if (!isAdmin()) return;
             try {
                 if (act === 'dismiss') { await deleteDoc(doc(col('reports'), uid)); return; }
+                if (act === 'noimg') {
+                    await setDoc(doc(col('penalties'), uid), { removeImage: true, reset: false, coinsPct: 0, upgradesPct: 0, ts: Date.now() });
+                    toast('Obrázek bude odstraněn, jakmile bude hráč online.', 3500); return;
+                }
                 if (act === 'delete') {
                     const t = allPlayers.find(x => x.id === uid);
                     if (!confirm('Opravdu SMAZAT účet hráče "' + ((t && t.nick) || uid) + '"? Nejde to vrátit.')) return;
@@ -686,7 +767,10 @@ window.renderAdminPlayers = () => {
                         deleteDoc(doc(db, 'artifacts', APP_ID, 'users', uid, 'saves', 'clock')),
                         deleteDoc(doc(col('reports'), uid))
                     ]);
-                    toast(r.some(x => x.status === 'rejected') ? 'Část dat se nepodařilo smazat – zkontroluj Firestore pravidla (mazání pro admina).' : '🗑 Účet smazán.', 5000);
+                    const names = ['žebříček', 'uložená hra', 'hodiny', 'report'];
+                    r.forEach(x => { if (x.status === 'rejected') console.error('Mazání selhalo:', x.reason); });
+                    const failed = r.map((x, i) => x.status === 'rejected' ? names[i] + ' (' + ((x.reason && x.reason.code) || '?') + ')' : null).filter(Boolean);
+                    toast(failed.length ? 'Nesmazáno: ' + failed.join(', ') : '🗑 Účet smazán.', 8000);
                     return;
                 }
                 const pct = Math.min(100, Math.max(1, Number($('ac-' + uid).value) || 50));
@@ -938,6 +1022,22 @@ window.renderAdminPlayers = () => {
             if (totalCps > 0) { score += totalCps; syncGlobalState(); updateUI(); }
         }, 1000);
 
+        // ===== OBROVSKÁ BÍLÁ EXPLOZE (konec souboje) =====
+        function megaExplosion() {
+            const flash = document.createElement('div');
+            flash.style.cssText = 'position:fixed;inset:0;background:#fff;z-index:500;pointer-events:none;animation:megaFlash 1.8s ease-out forwards';
+            document.body.appendChild(flash); setTimeout(() => flash.remove(), 1900);
+            const cx = window.innerWidth / 2, cy = window.innerHeight / 2, R = Math.max(window.innerWidth, window.innerHeight);
+            for (let i = 0; i < 350; i++) {
+                const p = document.createElement('div'), size = 10 + Math.random() * 40, a = Math.random() * Math.PI * 2, d = 150 + Math.random() * R;
+                p.className = 'particle';
+                p.style.cssText = 'z-index:550;background:#fff;box-shadow:0 0 25px #fff,0 0 60px #fff;animation-duration:1.8s;width:' + size + 'px;height:' + size + 'px;left:' + cx + 'px;top:' + cy + 'px;';
+                p.style.setProperty('--tx', Math.cos(a) * d + 'px'); p.style.setProperty('--ty', Math.sin(a) * d + 'px');
+                document.body.appendChild(p); setTimeout(() => p.remove(), 1900);
+            }
+        }
+        window.megaExplosion = megaExplosion;
+
         // ===== TOAST + HERNÍ API PRO MODUL =====
         function showToast(text, ms) {
             const t = document.createElement('div');
@@ -955,7 +1055,7 @@ window.renderAdminPlayers = () => {
             giveDrop(id) { limited.owned[id] = (limited.owned[id] || 0) + 1; recalcTotals(); syncGlobalState(); updateUI(); },
             wipe() {
                 this.penalty({ reset: true });
-                Object.assign(meta, { avatar: '🗿', font: 'sans', color: '#fbbf24', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, joined: Date.now() });
+                Object.assign(meta, { avatar: '🗿', font: 'sans', color: '#fbbf24', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, bestKps: 0, bestTime: 0, img: '', joined: Date.now() });
                 applyEmoji(); syncGlobalState(); updateUI();
             },
             penalty(p) {
