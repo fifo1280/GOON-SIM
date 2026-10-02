@@ -326,7 +326,7 @@
 
     <!-- HERNÍ LOGIKA -->
     <script>
-        const config = {"currency":"Goon Coins","emoji":"🍆","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":1000000000,"cps":100000,"clickPower":10000}]};
+        const config = {"currency":"Goon Coins","emoji":"🍆","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":1000000000,"cps":100000,"clickPower":10000},{"name":"Úmělá vagína","price":10000000000,"cps":1000000,"clickPower":200000},{"name":"Umělé sperma","price":30000000000,"cps":3000000,"clickPower":300000}]};
 
         // ===== LIMITOVANÉ DROPY =====
         // Každých intervalMin minut se objeví drop a je k dispozici durationSec sekund.
@@ -339,9 +339,9 @@
         //   cps/clickPower – trvalý bonus za každý koupený kus
         // Dropy se střídají popořadě (1., 2., 3., ... a znovu od začátku).
         const limitedDrops = [
-            { id: 'sexy-prádelko',  emoji: '👔', name: 'Sexy prádelko',   price: 5000000,   cps: 900000,  clickPower: 90000, stock: 10, maxPerPlayer: 1000000 },
-            { id: 'masturbacni-rukavice',  emoji: '✋', name: 'Masturbační rukavice', price: 200000,  cps: 120000, clickPower: 50000, stock: 5, maxPerPlayer: 100000 },
-            { id: 'masturbator-natuszkovebaterie',  emoji: '🔋', name: 'Masturbátor na tužkové baterky', price: 1000000, cps: 600000, clickPower: 200000, stock: 2, maxPerPlayer: 1000000 }
+            { id: 'sexy-prádelko',  emoji: '👔', name: 'Sexy prádelko',   price: 5000000,   cps: 90000,  clickPower: 50000, stock: 10, maxPerPlayer: 10 },
+            { id: 'masturbacni-rukavice',  emoji: '✋', name: 'Masturbační rukavice', price: 200000,  cps: 120000, clickPower: 50000, stock: 5, maxPerPlayer: 5 },
+            { id: 'masturbator-natuszkovebaterie',  emoji: '🔋', name: 'Masturbátor na tužkové baterky', price: 1000000, cps: 600000, clickPower: 200000, stock: 2, maxPerPlayer: 2 }
         ];
 
         let score = 0, totalCps = 0, clickPower = 1, totalClicks = 0;
