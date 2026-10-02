@@ -698,7 +698,7 @@
 
         // ===== KOLO ŠTĚSTÍ =====
         // cost = cena zatočení, w = váha (šance). Limitované dropy se do kola přidávají automaticky (w: 2 každý).
-        const WHEEL = { cost: 100000000000, prizes: [{ t: 'nothing', w: 80 }, { t: 'coins', frac: 0.5, w: 14 }].concat(limitedDrops.map(d => ({ t: 'drop', id: d.id, w: 2 }))) };
+        const WHEEL = { cost: 1000000000, prizes: [{ t: 'nothing', w: 80 }, { t: 'coins', frac: 0.5, w: 14 }].concat(limitedDrops.map(d => ({ t: 'drop', id: d.id, w: 2 }))) };
         window.WHEEL = WHEEL; window.limitedDrops = limitedDrops;
 
         const upgrades = config.upgrades.map(u => ({
