@@ -117,7 +117,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, linkWithRedirect, signInWithRedirect, getRedirectResult, signInWithCredential, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, runTransaction, deleteDoc, increment, query, where, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, runTransaction, deleteDoc, increment, query, where, updateDoc, serverTimestamp, getDocFromServer } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBlsK8qClnYEyKco0Z2TZ83kuDpSrB4B8g",
@@ -454,9 +454,31 @@
             spinning = false; window.saveGameProgress(false);
         };
 
+// ---------- SYNCHRONIZACE HODIN SE SERVEREM ----------
+        // Každý prohlížeč má trochu jiný čas. Změříme rozdíl proti Firestore serveru (3 pokusy, vybere se nejrychlejší)
+        // a čas souboje pak počítáme všichni stejně: serverNow().
+        let clockOffset = 0, clockTimer = null;
+        const serverNow = () => Date.now() + clockOffset;
+        async function syncClock() {
+            if (!db || !currentUser) return;
+            const ref = doc(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'saves', 'clock');
+            let best = null;
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const t0 = Date.now();
+                    await setDoc(ref, { t: serverTimestamp() });
+                    const t1 = Date.now();
+                    const srv = (await getDocFromServer(ref)).data().t.toMillis();
+                    if (!best || t1 - t0 < best.rtt) best = { rtt: t1 - t0, off: srv - (t0 + t1) / 2 };
+                } catch (e) { break; }
+            }
+            if (best) clockOffset = best.off;
+        }
+
         // ---------- SOUBOJE ----------
         function startFeatures() {
             unsubs.forEach(u => u && u()); unsubs = [];
+            syncClock(); if (!clockTimer) clockTimer = setInterval(syncClock, 300000);
             $('admin-btn').classList.toggle('hidden', !isAdmin());
             const dh = (s) => s.docChanges().forEach(ch => { if (ch.type === 'removed') delete myDuels[ch.doc.id]; else { const d = { id: ch.doc.id, ...ch.doc.data() }; myDuels[d.id] = d; onDuel(d); } });
             const er = (e) => console.warn('Firestore:', e.code);
@@ -474,7 +496,7 @@
             if (stake < 1) { toast('Máš málo coinů na sázku.', 2500); return; }
             const id = currentUser.uid + '_' + Date.now();
             try {
-                await setDoc(doc(col('duels'), id), { from: currentUser.uid, fromNick: $('player-nick').value.trim() || 'Anonym', to: uid, toNick: opp.nick || 'Hráč', pct, stakeFrom: stake, stakeTo: 0, status: 'pending', createdAt: Date.now(), progress: {} });
+                await setDoc(doc(col('duels'), id), { from: currentUser.uid, fromNick: $('player-nick').value.trim() || 'Anonym', to: uid, toNick: opp.nick || 'Hráč', pct, stakeFrom: stake, stakeTo: 0, status: 'pending', createdAt: serverNow(), progress: {} });
                 closeModal(); toast('⚔️ Výzva odeslána hráči ' + (opp.nick || '') + '…', 3000);
             } catch (e) { toast('Výzvu se nepodařilo odeslat (' + e.code + ')', 4000); }
         };
@@ -491,12 +513,12 @@
             const ref = doc(col('duels'), d.id), stake = Math.floor(api().score() * d.pct / 100);
             try {
                 if (!yes || stake < 1) { if (yes) toast('Máš málo coinů na sázku.', 2500); await updateDoc(ref, { status: 'declined' }); return; }
-                await updateDoc(ref, { status: 'active', stakeTo: stake, startAt: Date.now() + 4000 });
+                await updateDoc(ref, { status: 'active', stakeTo: stake, startAt: serverNow() + 4000 });
             } catch (e) { toast('Chyba souboje (' + e.code + ')', 4000); }
         }
 
         function onDuel(d) {
-            const me = currentUser.uid, now = Date.now();
+            const me = currentUser.uid, now = serverNow();
             if (d.status === 'pending' && d.to === me && now - d.createdAt < 60000 && !shownInv[d.id]) { shownInv[d.id] = 1; showInvite(d); }
             else if (d.status === 'declined' && d.from === me && now - d.createdAt < 120000 && !shownInv[d.id]) { shownInv[d.id] = 1; toast(d.toNick + ' odmítl souboj.', 4000); }
             else if (d.status === 'active' && d.startAt && now - d.startAt < 120000 && activeDuel !== d.id) openDuel(d);
@@ -511,7 +533,7 @@
         }
         function renderDuel() {
             const d = myDuels[activeDuel]; if (!d) return;
-            const me = currentUser.uid, opp = d.from === me ? d.to : d.from, left = d.startAt - Date.now();
+            const me = currentUser.uid, opp = d.from === me ? d.to : d.from, left = d.startAt - serverNow();
             const oppN = d.from === me ? d.toNick : d.fromNick, fin = d.status === 'finished';
             const mine = fin && d.winner === me ? 100 : Math.min(100, duelClicks), theirs = fin && d.winner === opp ? 100 : Math.min(100, (d.progress || {})[opp] || 0);
             $('duel-title').textContent = fin ? (d.winner === me ? '🏆 VYHRÁL JSI!' : '💀 Prohrál jsi') : left > 0 ? 'Start za ' + Math.ceil(left / 1000) : 'KLIKEJ! První do 100';
@@ -524,7 +546,7 @@
 
         window.duelClick = async (e) => {
             const d = myDuels[activeDuel];
-            if (!d || d.status !== 'active' || Date.now() < d.startAt || duelClicks >= 100) return;
+            if (!d || d.status !== 'active' || serverNow() < d.startAt || duelClicks >= 100) return;
             if (duelDet) duelDet(e);
             duelClicks++;
             const ref = doc(col('duels'), d.id), now = Date.now();
@@ -674,7 +696,7 @@
 
     <!-- HERNÍ LOGIKA -->
     <script>
-        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":10000001000000000,"cps":100000,"clickPower":10000},{"name":"Úmělá vagína","price":10000000000,"cps":1000000,"clickPower":200000},{"name":"Umělé sperma","price":30000000000,"cps":3000000,"clickPower":300000}]};
+        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":100000000,"cps":100000,"clickPower":10000},{"name":"Úmělá vagína","price":10000000000,"cps":1000000,"clickPower":200000},{"name":"Umělé sperma","price":30000000000,"cps":3000000,"clickPower":300000}]};
 
         // ===== LIMITOVANÉ DROPY =====
         // Každých intervalMin minut se objeví drop a je k dispozici durationSec sekund.
@@ -687,7 +709,7 @@
         //   cps/clickPower – trvalý bonus za každý koupený kus
         // Dropy se střídají popořadě (1., 2., 3., ... a znovu od začátku).
         const limitedDrops = [
-            { id: 'sexy-prádelko',  emoji: '👔', name: 'Sexy prádelko',   price: 5000000,   cps: 90000,  clickPower: 50000, stock: 10, maxPerPlayer: 1000000 },
+            { id: 'sexy-prádelko',  emoji: '👔', name: 'Sexy prádelko',   price: 5000000,   cps: 900000,  clickPower: 90000, stock: 10, maxPerPlayer: 1000000 },
             { id: 'masturbacni-rukavice',  emoji: '✋', name: 'Masturbační rukavice', price: 200000,  cps: 120000, clickPower: 50000, stock: 5, maxPerPlayer: 100000 },
             { id: 'masturbator-natuszkovebaterie',  emoji: '🔋', name: 'Masturbátor na tužkové baterky', price: 1000000, cps: 600000, clickPower: 200000, stock: 2, maxPerPlayer: 1000000 }
         ];
