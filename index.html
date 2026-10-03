@@ -4,7 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gooning Simulator</title>
+    <script>try { document.documentElement.dataset.theme = localStorage.getItem('goon_theme') || 'noc'; } catch (e) {}</script>
+    <script>
+        // Zástupné funkce: kliknutí během načítání se zapamatuje a provede, jakmile je hra připravená.
+        (function () {
+            var q = []; window.__q = q;
+            ['openModal','closeModal','openProfile','spinWheel','toggleAutoSpin','setTheme','setClickEmoji','saveProfile','uploadAvatar','removeAvatar','adminAct','challenge','sendCoins','duelClick','closeDuel'].forEach(function (n) {
+                window[n] = function () { q.push([n, [].slice.call(arguments)]); var b = document.getElementById('status-indicator'); if (b) b.textContent = '⏳ Načítám hru…'; };
+            });
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        const V = (n) => 'rgb(var(--' + n + ') / <alpha-value>)';
+        tailwind.config = { theme: { extend: { colors: {
+            slate: { 100: V('t1'), 300: V('t3'), 400: V('t4'), 500: V('t5'), 600: V('b2'), 700: V('b1'), 800: V('c2'), 900: V('c1'), 950: V('bg') },
+            amber: { 300: V('a3'), 400: V('a4'), 500: V('a5'), 600: V('a6'), 950: V('a9') },
+            purple: { 300: V('p3'), 400: V('p4'), 500: V('p5'), 600: V('p6'), 800: V('p6'), 950: V('p9') }
+        } } } };
+    </script>
     <style>
         html, body { touch-action: manipulation; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
         input { font-size: 16px !important; }
@@ -21,30 +39,93 @@
         @keyframes popText { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); } 80% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); } }
         .particle { position: fixed; border-radius: 50%; pointer-events: none; z-index: 90; animation: explode 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
         @keyframes explode { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
+    
+        /* ===== MOTIVY (barvy se berou z proměnných) ===== */
+        :root, :root[data-theme="noc"], :root[data-theme="light"] #duel-ov {
+            --bg:2 6 23; --c1:15 23 42; --c2:30 41 59; --b1:51 65 85; --b2:71 85 105; --t5:100 116 139; --t4:148 163 184; --t3:203 213 225; --t1:241 245 249;
+            --a3:252 211 77; --a4:251 191 36; --a5:245 158 11; --a6:217 119 6; --a9:69 26 3;
+            --p3:216 180 254; --p4:192 132 252; --p5:168 85 247; --p6:147 51 234; --p9:59 7 100;
+        }
+        :root[data-theme="neon"] {
+            --bg:5 2 20; --c1:15 8 40; --c2:28 16 66; --b1:60 36 120; --b2:90 56 160; --t5:120 100 170; --t4:160 140 210; --t3:200 190 240; --t1:240 235 255;
+            --a3:249 168 212; --a4:244 114 182; --a5:236 72 153; --a6:219 39 119; --a9:80 7 36;
+            --p3:103 232 249; --p4:34 211 238; --p5:6 182 212; --p6:8 145 178; --p9:8 51 68;
+        }
+        :root[data-theme="light"] {
+            --bg:244 246 251; --c1:255 255 255; --c2:226 232 240; --b1:203 213 225; --b2:148 163 184; --t5:120 133 154; --t4:90 104 128; --t3:55 68 92; --t1:15 23 42;
+            --a3:161 98 7; --a4:180 83 9; --a5:245 158 11; --a6:217 119 6; --a9:254 243 199;
+            --p3:109 40 217; --p4:126 34 206; --p5:168 85 247; --p6:147 51 234; --p9:237 233 254;
+        }
+        :root[data-theme="light"] .text-white { color: rgb(var(--t1)); }
+        :root[data-theme="light"] #duel-ov .text-white { color: #fff; }
+        :root[data-theme="light"] .text-slate-950 { color: #111827; }
+        :root[data-theme="light"] .text-slate-900 { color: #0f172a; }
+        :root[data-theme="light"] button[class*="bg-red-"], :root[data-theme="light"] button[class*="bg-purple-"],
+        :root[data-theme="light"] button[class*="bg-green-"], :root[data-theme="light"] button[class*="bg-sky-"] { color: #fff; }
+        :root[data-theme="neon"] #main-click-btn { filter: drop-shadow(0 0 28px rgb(var(--a5) / .8)); }
+        :root[data-theme="neon"] h1 { text-shadow: 0 0 18px rgb(var(--p5) / .6); }
+
+        /* ===== VYLEPŠENÍ VZHLEDU ===== */
+        header { position: sticky; top: 0; z-index: 40; backdrop-filter: blur(10px); }
+        nav button { transition: transform .12s, filter .12s; box-shadow: 0 2px 8px rgb(0 0 0 / .25); }
+        nav button:hover { transform: translateY(-1px); filter: brightness(1.12); }
+        #shop-list button { transition: transform .12s, border-color .12s, box-shadow .12s; }
+        #shop-list button:not(:disabled) { border-color: rgb(var(--a5) / .45); }
+        #shop-list button:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgb(0 0 0 / .25); }
+        #score-val { font-variant-numeric: tabular-nums; text-shadow: 0 0 24px rgb(var(--a5) / .35); }
+        .click-emoji:hover:not(:active) { transform: scale(1.06); }
+        #modal > div, #duel-invite { box-shadow: 0 20px 60px rgb(0 0 0 / .5); animation: uiPop .18s ease-out; }
+        @keyframes uiPop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        main > section { scrollbar-width: thin; }
+        @media (min-width: 1024px) { main { align-items: stretch; } }
+        @media (min-width: 1024px) {
+            html body { height: 100vh; overflow: hidden; }
+            main { min-height: 0; }
+            main > section { overflow-y: auto; }
+        }
+
+        /* ===== NAVIGACE: spodní lišta na mobilu, panel pod hlavičkou na PC ===== */
+        .nav-btn { --acc: rgb(var(--p5)); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: .5rem .25rem .45rem;
+            font-size: .65rem; font-weight: 700; color: rgb(var(--t4)); background: transparent; border: 0; border-top: 2px solid transparent; box-shadow: none; transition: color .15s, background .15s, border-color .15s; }
+        .nav-btn .ico { font-size: 1.4rem; line-height: 1; }
+        .nav-btn:hover, .nav-btn:active { color: rgb(var(--t1)); background: rgb(var(--c2) / .7); border-top-color: var(--acc); transform: none; filter: none; }
+        .nav-btn.hidden { display: none; }
+        #main-nav { padding-bottom: env(safe-area-inset-bottom); }
+        .card { background: rgb(var(--c1) / .85); border: 1px solid rgb(var(--b1) / .7); border-radius: 1rem; }
+        .chip { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .75rem; border-radius: 9999px; font-size: .75rem; font-weight: 700; background: rgb(var(--c2) / .8); border: 1px solid rgb(var(--b1) / .7); }
+        .sec-title { display: flex; align-items: center; gap: .5rem; font-size: .8rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgb(var(--t4)); margin-bottom: .75rem; }
+        #click-halo { background: radial-gradient(circle, rgb(var(--p5) / .22) 0%, rgb(var(--p5) / .06) 45%, transparent 70%); }
+        @media (min-width: 1024px) {
+            #main-nav { position: static; display: flex; justify-content: center; gap: .6rem; padding: .55rem 1rem; background: rgb(var(--c1) / .6); border-bottom: 1px solid rgb(var(--b1) / .6); }
+            .nav-btn { flex: none; flex-direction: row; gap: .5rem; padding: .5rem 1.1rem; font-size: .8rem; border: 1px solid rgb(var(--b1)); border-radius: .75rem; background: rgb(var(--c2) / .6); color: rgb(var(--t3)); }
+            .nav-btn .ico { font-size: 1.05rem; }
+            .nav-btn:hover { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc) inset; }
+            .nav-btn.admin { margin-left: auto; }
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans select-none overflow-x-hidden">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans select-none overflow-x-hidden pb-[4.5rem] lg:pb-0">
 
-    <header class="bg-slate-900 border-b border-slate-800 py-3 px-6 flex items-center justify-between shadow-lg">
-        <div class="flex items-center gap-3">
+    <header class="bg-slate-900 border-b border-slate-800 py-2.5 px-4 sm:px-6 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
             <span class="text-2xl" id="header-emoji">🗿</span>
-            <h1 class="font-black text-xl bg-gradient-to-r from-purple-400 to-amber-300 bg-clip-text text-transparent">Gooning Simulator</h1>
+            <h1 class="font-black text-base sm:text-xl whitespace-nowrap bg-gradient-to-r from-purple-400 to-amber-300 bg-clip-text text-transparent">Gooning Simulator</h1>
         </div>
-        <div class="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300 max-w-[60%] truncate" id="status-badge">
+        <div class="text-[11px] bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-slate-300 max-w-[45%] truncate" id="status-badge">
             <span id="status-indicator">🟡 Připojuji se...</span>
         </div>
     </header>
 
-    <nav class="bg-slate-900/80 border-b border-slate-800 px-4 py-2 flex gap-2 overflow-x-auto text-xs font-bold whitespace-nowrap">
-        <button onclick="openModal('duel')" class="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-lg">⚔️ Souboj</button>
-        <button onclick="openModal('wheel')" class="bg-purple-600 hover:bg-purple-500 px-3 py-1.5 rounded-lg">🎡 Kolo štěstí</button>
-        <button onclick="openModal('profiles')" class="bg-sky-600 hover:bg-sky-500 px-3 py-1.5 rounded-lg">👤 Profily</button>
-        <button onclick="openModal('settings')" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg">⚙️ Nastavení</button>
-        <button id="admin-btn" onclick="openModal('admin')" class="hidden bg-amber-600 hover:bg-amber-500 px-3 py-1.5 rounded-lg">🛡️ Admin</button>
+    <nav id="main-nav" class="fixed bottom-0 inset-x-0 z-40 flex bg-slate-900/95 border-t border-slate-800 backdrop-blur lg:border-t-0">
+        <button class="nav-btn" style="--acc:#ef4444" onclick="openModal('duel')"><span class="ico">⚔️</span><span>Souboj</span></button>
+        <button class="nav-btn" style="--acc:#a855f7" onclick="openModal('wheel')"><span class="ico">🎡</span><span>Kolo štěstí</span></button>
+        <button class="nav-btn" style="--acc:#38bdf8" onclick="openModal('profiles')"><span class="ico">👤</span><span>Profily</span></button>
+        <button class="nav-btn" style="--acc:#94a3b8" onclick="openModal('settings')"><span class="ico">⚙️</span><span>Nastavení</span></button>
+        <button id="admin-btn" class="nav-btn admin hidden" style="--acc:#f59e0b" onclick="openModal('admin')"><span class="ico">🛡️</span><span>Admin</span></button>
     </nav>
 
-    <div id="modal" class="hidden fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5">
+    <div id="modal" class="hidden fixed inset-0 z-[200] bg-black/70 flex items-end sm:items-center justify-center sm:p-4" onclick="if(event.target===this)closeModal()">
+        <div class="bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[88vh] overflow-y-auto p-5">
             <div class="flex justify-between items-center mb-3"><h3 id="modal-title" class="font-bold text-lg"></h3><button onclick="closeModal()" class="text-slate-400 text-xl px-2">✕</button></div>
             <div id="modal-body"></div>
         </div>
@@ -67,59 +148,74 @@
         <button id="duel-close" onclick="closeDuel()" class="hidden mt-4 bg-slate-700 px-4 py-2 rounded-lg text-sm">Zavřít</button>
     </div>
 
-    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12">
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-3 sm:p-4">
 
-        <section class="lg:col-span-5 border-b lg:border-b-0 lg:border-r border-slate-800 p-6 flex flex-col items-center justify-center relative min-h-[380px] bg-gradient-to-b from-slate-950 via-purple-950/10 to-slate-950">
-            <div class="text-center mb-6 z-10">
-                <div class="text-sm uppercase tracking-wider text-slate-400 font-semibold mb-1" id="currency-label">Goon Coins</div>
-                <div class="text-5xl font-black text-amber-400 tracking-tight drop-shadow-md" id="score-val">0</div>
-                <div class="text-sm font-medium text-purple-400 mt-2 bg-purple-950/40 px-4 py-1 rounded-full border border-purple-800/40 inline-block" id="cps-val">+0 / sekundu</div>
-                <div class="text-xs text-slate-500 mt-2">Celkem naklikáno: <span id="clicks-val" class="font-bold text-slate-400">0</span></div>
+        <!-- KLIKÁNÍ -->
+        <section class="lg:col-span-4 card p-5 flex flex-col items-center justify-center relative min-h-[360px]">
+            <div class="text-center z-10 w-full">
+                <div class="text-[11px] uppercase tracking-[.2em] text-slate-400 font-bold" id="currency-label">Goon Coins</div>
+                <div class="text-5xl sm:text-6xl font-black text-amber-400 tracking-tight my-1" id="score-val">0</div>
+                <div class="flex flex-wrap justify-center gap-2 mt-3">
+                    <span class="chip text-purple-400" id="cps-val">+0 / s</span>
+                    <span class="chip text-amber-300" id="power-val">+1 / klik</span>
+                    <span class="chip text-slate-300">👆 <span id="clicks-val">0</span></span>
+                </div>
             </div>
-            <button id="main-click-btn" class="click-emoji text-8xl md:text-9xl my-4 focus:outline-none cursor-pointer">🗿</button>
+            <div id="click-halo" class="rounded-full p-6 sm:p-8 my-3">
+                <button id="main-click-btn" class="click-emoji text-8xl sm:text-9xl block focus:outline-none cursor-pointer">🗿</button>
+            </div>
         </section>
 
-        <section class="lg:col-span-4 border-b lg:border-b-0 lg:border-r border-slate-800 p-6 bg-slate-900/60 overflow-y-auto">
-            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-2"><span>🛒</span> Vylepšení & Obchod</h2>
+        <!-- OBCHOD -->
+        <section class="lg:col-span-5 card p-4 sm:p-5 min-h-0">
+            <div class="sec-title"><span>🛒</span> Obchod</div>
             <!-- ŠABLONA: LIMITOVANÝ DROP (obsah se plní z JS, viz limitedDrops) -->
-            <div id="drop-box" class="mb-4 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 to-purple-950/40 p-4">
+            <div id="drop-box" class="mb-4 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 to-purple-950/40 p-3.5">
                 <div class="flex items-center justify-between text-[11px] uppercase tracking-wider text-amber-300 font-bold">
                     <span>⚡ Limitovaný drop</span>
                     <span id="drop-timer">--:--</span>
                 </div>
                 <div id="drop-body" class="mt-2 text-xs text-slate-400">Čekám na další drop...</div>
             </div>
-
-            <div id="shop-list" class="space-y-3"></div>
+            <div class="sec-title !mb-2 mt-1"><span>⬆️</span> Vylepšení</div>
+            <div id="shop-list" class="space-y-2.5"></div>
         </section>
 
-        <section class="lg:col-span-3 p-6 bg-slate-950 flex flex-col">
-            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2 border-b border-slate-800 pb-2"><span>🏆</span> Online Žebříček</h2>
-
-            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 mb-4 space-y-3 shadow-md">
-                <label class="block text-xs text-slate-400">Tvoje Přezdívka:</label>
-                <input type="text" id="player-nick" placeholder="Zadej jméno..." maxlength="15" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-purple-500 outline-none select-text">
-                <button id="save-score-btn" onclick="window.saveGameProgress && window.saveGameProgress(true)" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 px-3 rounded-lg text-xs uppercase tracking-wider transition shadow-md active:scale-95">💾 Uložit pozici & skóre</button>
+        <!-- ÚČET + ŽEBŘÍČEK -->
+        <section class="lg:col-span-3 flex flex-col gap-4 min-h-0">
+            <div class="card p-4 space-y-2.5">
+                <div class="sec-title !mb-1"><span>👤</span> Můj účet</div>
+                <input type="text" id="player-nick" placeholder="Tvoje přezdívka…" maxlength="15" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-purple-500 outline-none select-text">
+                <button id="save-score-btn" onclick="window.saveGameProgress && window.saveGameProgress(true)" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 px-3 rounded-lg text-xs uppercase tracking-wider transition active:scale-95">💾 Uložit pozici & skóre</button>
                 <button id="google-btn" onclick="window.googleLogin && window.googleLogin()" class="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-2 px-3 rounded-lg text-xs transition active:scale-95">🔐 Přihlásit přes Google</button>
                 <button id="logout-btn" onclick="window.googleLogout && window.googleLogout()" class="hidden w-full bg-slate-700 hover:bg-slate-600 text-white py-2 px-3 rounded-lg text-xs transition">Odhlásit</button>
             </div>
 
-            <div class="flex-1 overflow-y-auto pr-1">
-                <table class="w-full text-left text-xs">
-                    <thead><tr class="text-slate-500 border-b border-slate-800"><th class="py-2">#</th><th class="py-2">Hráč</th><th class="py-2 text-right">Měna</th></tr></thead>
-                    <tbody id="leaderboard-body" class="divide-y divide-slate-800/60">
-                        <tr><td colspan="3" class="py-4 text-center text-slate-500">Načítám žebříček...</td></tr>
-                    </tbody>
-                </table>
+            <div class="card p-4 flex-1 min-h-0 flex flex-col">
+                <div class="sec-title"><span>🏆</span> Žebříček</div>
+                <div class="flex-1 overflow-y-auto pr-1 -mr-1 max-h-[420px] lg:max-h-none">
+                    <table class="w-full text-left text-xs">
+                        <thead><tr class="text-slate-500 border-b border-slate-800"><th class="py-2">#</th><th class="py-2">Hráč</th><th class="py-2 text-right">Měna</th></tr></thead>
+                        <tbody id="leaderboard-body" class="divide-y divide-slate-800/60">
+                            <tr><td colspan="3" class="py-4 text-center text-slate-500">Načítám žebříček...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
     </main>
 
     <!-- FIREBASE -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, linkWithRedirect, signInWithRedirect, getRedirectResult, signInWithCredential, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, runTransaction, deleteDoc, increment, query, where, updateDoc, serverTimestamp, getDocFromServer } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Firebase se načítá dynamicky: i když se nenačte (výpadek, blokace), zbytek hry a menu funguje.
+        const FB = 'https://www.gstatic.com/firebasejs/11.6.1/';
+        let fb = {};
+        try {
+            const mods = await Promise.all([import(FB + 'firebase-app.js'), import(FB + 'firebase-auth.js'), import(FB + 'firebase-firestore.js')]);
+            fb = Object.assign({}, mods[0], mods[1], mods[2]);
+        } catch (e) { console.error('Firebase se nenačetl:', e); }
+        const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, linkWithPopup, linkWithRedirect, signInWithRedirect, getRedirectResult, signInWithCredential, signOut,
+            getFirestore, collection, doc, setDoc, getDoc, onSnapshot, runTransaction, deleteDoc, increment, query, where, updateDoc, serverTimestamp, getDocFromServer } = fb;
 
         const firebaseConfig = {
             apiKey: "AIzaSyBlsK8qClnYEyKco0Z2TZ83kuDpSrB4B8g",
@@ -322,7 +418,7 @@
                 const rowClass = isMe ? 'bg-purple-950/40 font-bold text-amber-300' : 'text-slate-300';
                 return '<tr data-u="' + p.id + '" onclick="openProfile(this.dataset.u)" class="cursor-pointer ' + rowClass + ' hover:bg-slate-900 transition"><td class="py-2.5 font-semibold">' + medal + '</td>' +
                     '<td class="py-2.5 truncate max-w-[110px]" style="' + nickStyle(p) + '">' + av(p, 16) + ' ' + escapeHtml(p.nick || 'Hráč') + '</td>' +
-                    '<td class="py-2.5 text-right font-mono text-amber-400">' + Math.floor(p.coins || 0).toLocaleString('cs-CZ') + '</td></tr>';
+                    '<td class="py-2.5 text-right font-mono text-amber-400">' + window.abbr(p.coins || 0) + '</td></tr>';
             }).join('');
         }
 
@@ -341,7 +437,7 @@
         const isAdmin = () => !!(currentUser && currentUser.email === ADMIN_EMAIL);
         const col = (n) => collection(db, 'artifacts', APP_ID, 'public', 'data', n);
         const isOnline = (p) => Date.now() - (p.lastSeen || 0) < 30000;
-        const n0 = (n) => Math.floor(n || 0).toLocaleString('cs-CZ');
+        const n0 = (n) => window.abbr(n || 0);
         const toast = (t, ms) => window.showToast(t, ms);
         const nickStyle = (p) => 'font-family:' + (FONTS[p.nickFont] || FONTS.sans).replace(/"/g, "'") + ';color:' + (/^#[0-9a-f]{6}$/i.test(p.nickColor || '') ? p.nickColor : '#fbbf24');
         // Obrázek se zobrazí jen pokud je to malý JPEG data-URL (jiný obsah se ignoruje)
@@ -396,7 +492,7 @@
                 const W = window.WHEEL, tot = W.prizes.reduce((a, x) => a + x.w, 0);
                 const label = (x) => x.t === 'nothing' ? 'Nic' : x.t === 'coins' ? Math.round(x.frac * 100) + ' % ceny zpět' : '🏆 ' + window.limitedDrops.find(d => d.id === x.id).name;
                 title = '🎡 Kolo štěstí';
-                B.innerHTML = '<div class="text-xs text-slate-400 mb-2">Cena za zatočení: <b class="text-amber-400">' + n0(W.cost) + '</b>. Většinou nic, ale můžeš vyhrát limitovaný upgrade!</div>' +
+                B.innerHTML = '<div class="text-xs text-slate-400 mb-2">Cena za zatočení: <b class="text-amber-400">' + n0(W.cost) + '</b> – většinou nic, ale můžeš vyhrát limitovaný upgrade!</div>' +
                     '<div id="wheel-disp" class="text-7xl text-center my-3">🎡</div><div id="wheel-msg" class="text-center text-sm min-h-[1.5rem] mb-2"></div>' +
                     '<button onclick="spinWheel()" class="w-full bg-purple-600 hover:bg-purple-500 py-2.5 rounded-lg font-bold">Zatočit (' + n0(W.cost) + ')</button>' +
                     '<div class="flex items-center gap-2 mt-2"><button id="auto-btn" onclick="toggleAutoSpin()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-sm font-bold">🔁 Auto spin</button><label class="text-xs flex items-center gap-1 whitespace-nowrap"><input id="auto-stop" type="checkbox" checked> stop po výhře</label></div>' +
@@ -405,14 +501,14 @@
                 const m = meta();
                 const sel = (id, opts, cur) => '<select id="' + id + '" class="' + inputCls + '">' + opts.map(o => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>';
                 title = '⚙️ Nastavení';
-                B.innerHTML = '<div class="text-xs text-slate-400 mb-1">Emoji na klikání</div><div id="emoji-pick" class="flex gap-2 mb-4"></div>' +
+                B.innerHTML = '<div class="text-xs text-slate-400 mb-1">Vzhled stránky</div><div id="theme-pick" class="grid grid-cols-3 gap-2 mb-4"></div><div class="text-xs text-slate-400 mb-1">Emoji na klikání</div><div id="emoji-pick" class="flex gap-2 mb-4"></div>' +
                     '<div class="text-xs text-slate-400 mb-1">Profilovka (emoji)</div>' + sel('set-avatar', AVATARS.map(a => [a, a]), m.avatar) +
                     '<div class="text-xs text-slate-400 mt-3 mb-1">Vlastní obrázek (nahradí emoji)</div><div class="flex items-center gap-3"><div id="img-prev"></div><div class="flex-1 space-y-1"><input id="set-img" type="file" accept="image/*" onchange="uploadAvatar(this)" class="w-full text-xs text-slate-300"><button onclick="removeAvatar()" class="text-xs bg-slate-700 px-2 py-1 rounded">Odebrat obrázek</button></div></div>' +
                     '<div class="text-xs text-slate-400 mt-3 mb-1">Styl písma jména</div>' + sel('set-font', [['sans', 'Normální'], ['serif', 'Serif'], ['mono', 'Mono'], ['comic', 'Comic'], ['impact', 'Impact']], m.font) +
                     '<div class="text-xs text-slate-400 mt-3 mb-1">Barva jména</div><input id="set-color" type="color" value="' + (m.color || '#fbbf24') + '" class="w-full h-10 bg-slate-950 border border-slate-700 rounded-lg">' +
                     '<div class="text-xs text-slate-400 mt-3 mb-1">O mně</div><input id="set-bio" maxlength="60" value="' + escapeHtml(m.bio || '') + '" class="' + inputCls + '">' +
                     '<button onclick="saveProfile()" class="mt-4 w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg">💾 Uložit profil</button>';
-                renderEmojiPick(); renderImgPrev();
+                renderEmojiPick(); renderImgPrev(); renderThemePick();
             } else if (name === 'admin') {
                 if (!isAdmin()) { closeModal(); return; }
                 title = '🛡️ Admin – podezření na autoclicker';
@@ -442,6 +538,12 @@
             const el = $('emoji-pick'); if (!el) return;
             el.innerHTML = ['🍒', '🍑', '🍆'].map(e => '<button data-e="' + e + '" onclick="setClickEmoji(this.dataset.e)" class="text-4xl p-2 rounded-xl border-2 ' + (meta().emoji === e ? 'border-amber-400 bg-slate-800' : 'border-slate-700') + '">' + e + '</button>').join('');
         }
+        const THEMES = [['noc', 'Noc', 'linear-gradient(135deg,#0f172a,#a855f7,#fbbf24)'], ['neon', 'Neon', 'linear-gradient(135deg,#0f0828,#ec4899,#22d3ee)'], ['light', 'Světlý', 'linear-gradient(135deg,#ffffff,#e2e8f0,#d97706)']];
+        function renderThemePick() {
+            const el = $('theme-pick'); if (!el) return;
+            el.innerHTML = THEMES.map(t => '<button data-t="' + t[0] + '" onclick="setTheme(this.dataset.t)" class="rounded-xl border-2 p-2 text-xs font-bold ' + (meta().theme === t[0] ? 'border-amber-400' : 'border-slate-700') + '"><div class="h-8 rounded-lg mb-1" style="background:' + t[2] + '"></div>' + t[1] + '</button>').join('');
+        }
+        window.setTheme = (t) => { window.applyTheme(t); renderThemePick(); window.saveGameProgress(false); };
         window.setClickEmoji = (e) => { meta().emoji = e; window.applyEmoji(); renderEmojiPick(); window.saveGameProgress(false); };
         window.saveProfile = () => {
             const m = meta();
@@ -810,6 +912,8 @@ window.renderAdminPlayers = () => {
         window.addEventListener('pagehide', () => { if (loaded) saveLocal(); });
 
         initFirebase();
+        window.__fbReady = true;
+        (window.__q || []).splice(0).forEach(function (c) { try { if (typeof window[c[0]] === 'function') window[c[0]].apply(null, c[1]); } catch (e) { console.error(e); } });
     </script>
 
     <!-- HERNÍ LOGIKA -->
@@ -827,18 +931,29 @@ window.renderAdminPlayers = () => {
         //   cps/clickPower – trvalý bonus za každý koupený kus
         // Dropy se střídají popořadě (1., 2., 3., ... a znovu od začátku).
         const limitedDrops = [
-            { id: 'sexy-prádelko',  emoji: '👔', name: 'Sexy prádelko',   price: 5000000,   cps: 90000,  clickPower: 50000, stock: 10, maxPerPlayer: 1000000 },
+            { id: 'sexy-prádelko',  emoji: '👔', name: 'Sexy prádelko',   price: 5000000,   cps: 900000,  clickPower: 90000, stock: 10, maxPerPlayer: 1000000 },
             { id: 'masturbacni-rukavice',  emoji: '✋', name: 'Masturbační rukavice', price: 200000,  cps: 120000, clickPower: 50000, stock: 5, maxPerPlayer: 100000 },
-            { id: 'masturbator-natuszkovebaterie',  emoji: '🔋', name: 'Masturbátor na tužkové baterky', price: 1000000, cps: 600000, clickPower: 200000, stock: 2, maxPerPlayer: 1000000 }
+            { id: 'masturbator-natuszkovebaterie',  emoji: '🔋', name: 'Masturbátor na tužkové baterky', price: 1000000, cps: 600000, clickPower: 200000, stock: 2, maxPerPlayer: 1000000 },
+            // --- nové dropy (wheelW = šance v kole štěstí, výchozí 2; wheel: false = v kole nepadá) ---
+            { id: 'vysavac-spermii',  emoji: '🐍', name: 'Vysavač spermií', price: 100000000, cps: 1200000, clickPower: 1000000, stock: 1, maxPerPlayer: 1000000, wheelW: 0.5 },
+            { id: 'bullet-vibrator',  emoji: '💜', name: 'Mini vibrátor Bullet', price: 150000, cps: 60000, clickPower: 25000, stock: 15, maxPerPlayer: 3 },
+            { id: 'cock-ring',  emoji: '⭕', name: 'Vibrační erekční kroužek', price: 400000, cps: 150000, clickPower: 60000, stock: 12, maxPerPlayer: 2 },
+            { id: 'silikon-lubrikant',  emoji: '🧴', name: 'Silikonový lubrikant XXL', price: 800000, cps: 280000, clickPower: 110000, stock: 10, maxPerPlayer: 3 },
+            { id: 'pouta-saten',  emoji: '🔗', name: 'Saténová pouta', price: 1500000, cps: 420000, clickPower: 160000, stock: 8, maxPerPlayer: 2 },
+            { id: 'prostata-masager',  emoji: '🔮', name: 'Prostatický masér', price: 3000000, cps: 650000, clickPower: 250000, stock: 6, maxPerPlayer: 1 },
+            { id: 'vakuova-pumpa',  emoji: '🫧', name: 'Vakuová pumpa', price: 6000000, cps: 1000000, clickPower: 400000, stock: 5, maxPerPlayer: 1 },
+            { id: 'magic-wand',  emoji: '🪄', name: 'Magic Wand masážní hlavice', price: 12000000, cps: 1600000, clickPower: 650000, stock: 4, maxPerPlayer: 1 },
+            { id: 'fleshlight-turbo',  emoji: '🔦', name: 'Fleshlight Turbo', price: 25000000, cps: 2500000, clickPower: 900000, stock: 3, maxPerPlayer: 1 },
+            { id: 'sex-machine',  emoji: '⚙️', name: 'Sex machine s dálkovým ovladačem', price: 60000000, cps: 4500000, clickPower: 1800000, stock: 2, maxPerPlayer: 1, wheelW: 1 }
         ];
 
         let score = 0, totalCps = 0, clickPower = 1, totalClicks = 0;
         let limited = { owned: {}, slot: 0, slotBought: 0 };
-        const meta = { avatar: '🗿', font: 'sans', color: '#fbbf24', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, joined: Date.now() };
+        const meta = { theme: (function () { try { return localStorage.getItem('goon_theme') || 'noc'; } catch (e) { return 'noc'; } })(), avatar: '🗿', font: 'sans', color: '#fbbf24', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, joined: Date.now() };
 
         // ===== KOLO ŠTĚSTÍ =====
         // cost = cena zatočení, w = váha (šance). Limitované dropy se do kola přidávají automaticky (w: 2 každý).
-        const WHEEL = { cost: 1000000000, prizes: [{ t: 'nothing', w: 80 }, { t: 'coins', frac: 0.5, w: 14 }].concat(limitedDrops.map(d => ({ t: 'drop', id: d.id, w: 2 }))) };
+        const WHEEL = { cost: 1000000000, prizes: [{ t: 'nothing', w: 80 }, { t: 'coins', frac: 0.5, w: 14 }].concat(limitedDrops.filter(d => d.wheel !== false).map(d => ({ t: 'drop', id: d.id, w: d.wheelW || 2 }))) };
         window.WHEEL = WHEEL; window.limitedDrops = limitedDrops;
 
         const upgrades = config.upgrades.map(u => ({
@@ -878,6 +993,7 @@ window.renderAdminPlayers = () => {
             totalCps = 0;
             clickPower = 1;
             if (data.meta) Object.assign(meta, data.meta);
+            if (data.meta && data.meta.theme) applyTheme(data.meta.theme);
             applyEmoji();
             if (data.limited && data.limited.owned) {
                 limited = { owned: data.limited.owned, slot: data.limited.slot || 0, slotBought: data.limited.slotBought || 0 };
@@ -896,7 +1012,7 @@ window.renderAdminPlayers = () => {
                         setTimeout(() => {
                             const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
                             let t = (h > 0 ? h + 'h ' : '') + (m > 0 ? m + 'm ' : '') + s + 's';
-                            alert('🌙 Vítej zpět!\n\nBěhem tvé nepřítomnosti (' + t + ') ses vydělalo:\n+' + earned.toLocaleString('cs-CZ') + ' ' + config.currency + '!');
+                            alert('🌙 Vítej zpět!\n\nBěhem tvé nepřítomnosti (' + t + ') ses vydělalo:\n+' + abbr(earned) + ' ' + config.currency + '!');
                         }, 600);
                     }
                 }
@@ -912,6 +1028,12 @@ window.renderAdminPlayers = () => {
             ['header-emoji', 'main-click-btn', 'duel-btn'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = meta.emoji; });
         }
         window.applyEmoji = applyEmoji;
+        function applyTheme(t) {
+            if (['noc', 'neon', 'light'].indexOf(t) < 0) t = 'noc';
+            meta.theme = t; document.documentElement.dataset.theme = t;
+            try { localStorage.setItem('goon_theme', t); } catch (e) {}
+        }
+        window.applyTheme = applyTheme;
         applyEmoji();
         document.getElementById('currency-label').textContent = config.currency;
 
@@ -919,7 +1041,23 @@ window.renderAdminPlayers = () => {
         const cpsUI = document.getElementById('cps-val');
         const clicksUI = document.getElementById('clicks-val');
         const shopUI = document.getElementById('shop-list');
-        const fmt = (n) => Math.floor(n).toLocaleString('cs-CZ');
+        // Zkrácení velkých čísel: 1 500 000 -> "1,5 mil.", 30 000 000 000 -> "30 mld."
+        const UNITS = [[1e18, 'trl.'], [1e15, 'bld.'], [1e12, 'bil.'], [1e9, 'mld.'], [1e6, 'mil.']];
+        function abbr(n) {
+            n = Math.floor(n || 0);
+            if (!isFinite(n)) return '∞';
+            for (const [v, u] of UNITS) {
+                if (n >= v) {
+                    const x = n / v;
+                    let t = x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2);
+                    if (t.includes('.')) t = t.replace(/\.?0+$/, '');
+                    return t.replace('.', ',') + ' ' + u;
+                }
+            }
+            return n.toLocaleString('cs-CZ');
+        }
+        window.abbr = abbr;
+        const fmt = abbr;
 
         function renderShop() {
             shopUI.innerHTML = '';
@@ -934,14 +1072,15 @@ window.renderAdminPlayers = () => {
                 btn.innerHTML = '<div><div class="font-bold text-sm text-white group-hover:text-purple-300 transition">' + u.name + '</div>' +
                     '<div class="text-xs text-purple-400 mt-0.5">' + bonus.join(' | ') + '</div></div>' +
                     '<div class="text-right"><div class="font-black text-amber-400 text-sm" id="upg-price-' + i + '">' + fmt(u.currentPrice) + '</div>' +
-                    '<div class="text-[10px] text-slate-400">Vlastněno: <span id="upg-count-' + i + '" class="font-bold text-slate-200">0</span></div></div>';
+                    '<div class="text-[10px] text-slate-400">Vlastněno: <span id="upg-count-' + i + '" class="font-bold text-slate-300">0</span></div></div>';
                 shopUI.appendChild(btn);
             });
         }
 
         function updateUI() {
-            scoreUI.textContent = fmt(score);
-            cpsUI.textContent = '+' + fmt(totalCps) + ' ' + config.currency + '/s';
+            scoreUI.textContent = fmt(score); scoreUI.title = Math.floor(score).toLocaleString('cs-CZ');
+            cpsUI.textContent = '+' + fmt(totalCps) + ' / s';
+            const pw = document.getElementById('power-val'); if (pw) pw.textContent = '+' + fmt(clickPower) + ' / klik';
             clicksUI.textContent = fmt(totalClicks);
             if (typeof refreshDrop === 'function') refreshDrop();
             upgrades.forEach((u, i) => {
@@ -1042,7 +1181,7 @@ window.renderAdminPlayers = () => {
         function showToast(text, ms) {
             const t = document.createElement('div');
             t.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[400] bg-red-700/95 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-2xl max-w-[90%] text-center';
-            t.textContent = text; document.body.appendChild(t); setTimeout(() => t.remove(), ms || 4000);
+            t.style.color = '#fff'; t.textContent = text; document.body.appendChild(t); setTimeout(() => t.remove(), ms || 4000);
         }
         function recalcTotals() {
             totalCps = 0; clickPower = 1;
