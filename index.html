@@ -14,6 +14,8 @@
             });
         })();
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Orbitron:wght@700&family=Press+Start+2P&family=Bebas+Neue&family=Lobster&family=Permanent+Marker&family=Righteous&family=Creepster&family=Cinzel:wght@700&family=Caveat:wght@700&family=Bangers&family=Audiowide&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         const V = (n) => 'rgb(var(--' + n + ') / <alpha-value>)';
@@ -102,6 +104,9 @@
             .nav-btn:hover { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc) inset; }
             .nav-btn.admin { margin-left: auto; }
         }
+
+        @keyframes nickRainbow { from { background-position: 0% 0; } to { background-position: 300% 0; } }
+        .role-badge { display: inline-block; font-size: .6rem; font-weight: 800; line-height: 1.3; border: 1px solid; border-radius: 9999px; padding: 0 .4rem; vertical-align: middle; font-family: ui-sans-serif,system-ui,sans-serif; letter-spacing: 0; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans select-none overflow-x-hidden pb-[4.5rem] lg:pb-0">
@@ -417,7 +422,7 @@
                 const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : (idx + 1) + '.';
                 const rowClass = isMe ? 'bg-purple-950/40 font-bold text-amber-300' : 'text-slate-300';
                 return '<tr data-u="' + p.id + '" onclick="openProfile(this.dataset.u)" class="cursor-pointer ' + rowClass + ' hover:bg-slate-900 transition"><td class="py-2.5 font-semibold">' + medal + '</td>' +
-                    '<td class="py-2.5 truncate max-w-[110px]" style="' + nickStyle(p) + '">' + av(p, 16) + ' ' + escapeHtml(p.nick || 'Hráč') + '</td>' +
+                    '<td class="py-2.5 truncate max-w-[150px]">' + nm(p, 16) + '</td>' +
                     '<td class="py-2.5 text-right font-mono text-amber-400">' + window.abbr(p.coins || 0) + '</td></tr>';
             }).join('');
         }
@@ -428,8 +433,17 @@
 
         // ===== PROFILY, SOUBOJE, KOLO ŠTĚSTÍ, NASTAVENÍ, ADMIN =====
         const ADMIN_EMAIL = 'filip.netolickyfifo@gmail.com';
-        const FONTS = { sans: 'ui-sans-serif,system-ui,sans-serif', serif: 'Georgia,serif', mono: '"Courier New",monospace', comic: '"Comic Sans MS","Chalkboard SE",cursive', impact: 'Impact,"Arial Black",sans-serif' };
-        const AVATARS = ['🗿', '😎', '🔥', '👑', '🦄', '🐉', '💀', '🤡', '🍒', '🍑', '🍆'];
+        const FONTS = { sans: 'ui-sans-serif,system-ui,sans-serif', serif: 'Georgia,serif', mono: '"Courier New",monospace', comic: '"Comic Sans MS","Chalkboard SE",cursive', impact: 'Impact,"Arial Black",sans-serif',
+            pacifico: '"Pacifico",cursive', orbitron: '"Orbitron",sans-serif', pixel: '"Press Start 2P",monospace', bebas: '"Bebas Neue",sans-serif', lobster: '"Lobster",cursive', marker: '"Permanent Marker",cursive',
+            righteous: '"Righteous",sans-serif', creepster: '"Creepster",cursive', cinzel: '"Cinzel",serif', caveat: '"Caveat",cursive', bangers: '"Bangers",cursive', audiowide: '"Audiowide",sans-serif' };
+        const FONT_NAMES = { sans: 'Normální', serif: 'Serif', mono: 'Mono', comic: 'Comic', impact: 'Impact', pacifico: 'Pacifico', orbitron: 'Orbitron', pixel: 'Pixel', bebas: 'Bebas', lobster: 'Lobster', marker: 'Fix', righteous: 'Righteous', creepster: 'Creepster', cinzel: 'Cinzel', caveat: 'Rukopis', bangers: 'Bangers', audiowide: 'Audiowide' };
+        const FX = [['none', 'Žádný'], ['bold', 'Tučný'], ['glow', 'Záře'], ['gradient', 'Přechod'], ['rainbow', '🌈 Duha'], ['shadow', 'Stín']];
+        const FRAMES = { none: null, gold: 'linear-gradient(135deg,#fde68a,#f59e0b,#b45309)', neon: 'linear-gradient(135deg,#22d3ee,#a855f7,#ec4899)', fire: 'linear-gradient(135deg,#fde047,#f97316,#dc2626)', rainbow: 'conic-gradient(#f87171,#fbbf24,#4ade80,#22d3ee,#a78bfa,#f472b6,#f87171)', ice: 'linear-gradient(135deg,#e0f2fe,#38bdf8,#6366f1)' };
+        const FRAME_NAMES = { none: 'Bez rámečku', gold: '🥇 Zlatý', neon: '💜 Neon', fire: '🔥 Oheň', rainbow: '🌈 Duha', ice: '🧊 Led' };
+        const AVATARS = ['🗿', '😎', '🔥', '👑', '🦄', '🐉', '💀', '🤡', '🍒', '🍑', '🍆', '😈', '💦', '🍌', '🌶️', '💎', '⭐', '🦍', '👽', '🐸'];
+        const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+        const okColor = (c, d) => /^#[0-9a-f]{6}$/i.test(c || '') ? c : d;
+        let rolesMap = {}, userRoles = {}, editRoleId = null, draft = null;
         let allPlayers = [], reports = [], myDuels = {}, unsubs = [], modalName = null, shownInv = {};
         let activeDuel = null, duelClicks = 0, lastProg = 0, duelDet = null, duelTimer = null, spinning = false, lastPen = 0, lastRep = 0;
         let duelTimes = [], duelMax = 0, oppSamples = [], boomDone = {}, autoSpin = false, autoN = 0;
@@ -439,13 +453,44 @@
         const isOnline = (p) => Date.now() - (p.lastSeen || 0) < 30000;
         const n0 = (n) => window.abbr(n || 0);
         const toast = (t, ms) => window.showToast(t, ms);
-        const nickStyle = (p) => 'font-family:' + (FONTS[p.nickFont] || FONTS.sans).replace(/"/g, "'") + ';color:' + (/^#[0-9a-f]{6}$/i.test(p.nickColor || '') ? p.nickColor : '#fbbf24');
+        function nickStyle(p) {
+            const f = own(FONTS, p.nickFont) ? FONTS[p.nickFont] : FONTS.sans, c = okColor(p.nickColor, '#fbbf24'), c2 = okColor(p.nickColor2, '#ec4899');
+            let st = 'font-family:' + f.replace(/"/g, "'") + ';color:' + c;
+            const clip = ';-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent';
+            switch (p.nickFx) {
+                case 'bold': st += ';font-weight:900'; break;
+                case 'glow': st += ';text-shadow:0 0 6px ' + c + ',0 0 16px ' + c; break;
+                case 'shadow': st += ';text-shadow:2px 2px 0 ' + c2; break;
+                case 'gradient': st += ';background:linear-gradient(90deg,' + c + ',' + c2 + ')' + clip; break;
+                case 'rainbow': st += ';background:linear-gradient(90deg,#f87171,#fbbf24,#4ade80,#22d3ee,#a78bfa,#f472b6,#f87171);background-size:300% 100%' + clip + ';animation:nickRainbow 4s linear infinite'; break;
+            }
+            return st;
+        }
+        function roleOf(uid) { const r = own(userRoles, uid) ? rolesMap[userRoles[uid]] : null; return r || null; }
+        function roleBadge(uid) {
+            const r = uid ? roleOf(uid) : null; if (!r) return '';
+            const c = okColor(r.color, '#fbbf24');
+            return ' <span class="role-badge" style="color:' + c + ';border-color:' + c + '">' + escapeHtml(((r.emoji || '') + ' ' + (r.name || '')).trim()) + '</span>';
+        }
         // Obrázek se zobrazí jen pokud je to malý JPEG data-URL (jiný obsah se ignoruje)
         const IMG_OK = /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]{20,24000}$/;
-        const av = (p, px) => IMG_OK.test(p.img || '')
-            ? '<img src="' + p.img + '" class="inline-block rounded-full object-cover align-middle" style="width:' + px + 'px;height:' + px + 'px">'
-            : '<span style="font-size:' + Math.round(px * 0.9) + 'px;line-height:1">' + escapeHtml(p.avatar || '🗿') + '</span>';
-        const nm = (p) => av(p, 18) + ' ' + escapeHtml(p.nick || 'Hráč');
+        const av = (p, px) => {
+            const inner = IMG_OK.test(p.img || '')
+                ? '<img src="' + p.img + '" class="inline-block rounded-full object-cover align-middle" style="width:' + px + 'px;height:' + px + 'px">'
+                : '<span style="font-size:' + Math.round(px * 0.9) + 'px;line-height:1">' + escapeHtml(p.avatar || '🗿') + '</span>';
+            const fr = own(FRAMES, p.frame) ? FRAMES[p.frame] : null;
+            if (!fr) return inner;
+            return '<span class="inline-flex items-center justify-center rounded-full align-middle" style="background:' + fr + ';padding:' + (px >= 40 ? 3 : 2) + 'px;box-shadow:0 0 ' + (px >= 40 ? 14 : 6) + 'px rgba(255,255,255,.25)">' +
+                '<span class="inline-flex items-center justify-center rounded-full overflow-hidden" style="background:rgb(var(--c1));width:' + px + 'px;height:' + px + 'px">' + inner + '</span></span>';
+        };
+        const nm = (p, px) => av(p, px || 18) + ' <span style="' + nickStyle(p) + '">' + escapeHtml(p.nick || 'Hráč') + '</span>' + roleBadge(p.id);
+        function profileHead(p, status) {
+            const ban = okColor(p.banner, '');
+            return '<div class="rounded-xl p-4 text-center mb-3 border border-slate-700" style="' + (ban ? 'background:linear-gradient(135deg,' + ban + '55,transparent 75%)' : '') + '">' +
+                '<div class="flex justify-center">' + av(p, 72) + '</div><div class="text-2xl font-black mt-1.5 break-words" style="' + nickStyle(p) + '">' + escapeHtml(p.nick || 'Hráč') + '</div>' +
+                (roleBadge(p.id) ? '<div class="mt-1">' + roleBadge(p.id) + '</div>' : '') +
+                '<div class="text-xs text-slate-400 mt-1">' + status + '</div><div class="text-sm text-slate-300 mt-2 italic">' + escapeHtml(p.bio || '') + '</div></div>';
+        }
         const stat = (l, v) => '<div class="bg-slate-800 rounded-lg p-2"><div class="text-[10px] text-slate-400">' + l + '</div><div class="text-sm font-bold text-amber-300">' + v + '</div></div>';
         const inputCls = 'w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white';
 
@@ -454,7 +499,7 @@
             return { nick: s.nick, coins: s.coins, clicks: s.clicks, updatedAt: s.updatedAt, lastSeen: Date.now(),
                 cps: Math.floor(window.gameCps || 0), clickPower: window.gameClickPower || 1,
                 ups: (window.gameUpgradesState || []).reduce((a, u) => a + u.count, 0), drops: Object.values(l).reduce((a, b) => a + b, 0),
-                avatar: m.avatar || '🗿', nickFont: m.font || 'sans', nickColor: m.color || '#fbbf24', bio: m.bio || '',
+                avatar: m.avatar || '🗿', nickFont: m.font || 'sans', nickColor: m.color || '#fbbf24', nickFx: m.fx || 'none', nickColor2: m.color2 || '#ec4899', banner: m.banner || '', frame: m.frame || 'none', bio: m.bio || '',
                 wins: m.wins || 0, losses: m.losses || 0, spins: m.spins || 0, jackpots: m.jackpots || 0, joined: m.joined || Date.now(),
                 bestKps: m.bestKps || 0, bestTime: m.bestTime || 0, img: m.img || '' };
         }
@@ -481,8 +526,8 @@
                 const p = me ? Object.assign(pubProfile(buildState()), { id: arg }) : allPlayers.find(x => x.id === arg);
                 if (!p) { closeModal(); return; }
                 title = 'Profil';
-                B.innerHTML = '<div class="text-center mb-3"><div class="flex justify-center">' + av(p, 72) + '</div><div class="text-2xl font-black mt-1" style="' + nickStyle(p) + '">' + escapeHtml(p.nick || 'Hráč') + '</div>' +
-                    '<div class="text-xs text-slate-400">' + (isOnline(p) || me ? '🟢 Online' : '⚫ Naposledy ' + new Date(p.lastSeen || 0).toLocaleString('cs-CZ')) + '</div><div class="text-sm text-slate-300 mt-2 italic">' + escapeHtml(p.bio || '') + '</div></div>' +
+                B.innerHTML = profileHead(p, (isOnline(p) || me ? '🟢 Online' : '⚫ Naposledy ' + new Date(p.lastSeen || 0).toLocaleString('cs-CZ'))) +
+                    
                     '<div class="grid grid-cols-2 gap-2">' + stat('Goon Coins', n0(p.coins)) + stat('Naklikáno', n0(p.clicks)) + stat('CPS', n0(p.cps)) + stat('Síla kliku', n0(p.clickPower)) +
                     stat('Upgradů', n0(p.ups)) + stat('Limitovek', n0(p.drops)) + stat('Souboje V / P', (p.wins || 0) + ' / ' + (p.losses || 0)) + stat('Kolo: výhry / točení', (p.jackpots || 0) + ' / ' + (p.spins || 0)) + stat('Rekord kliků/s', n0(p.bestKps)) + stat('Nejrychlejší výhra', p.bestTime ? Number(p.bestTime).toFixed(1) + ' s' : '–') + '</div>' +
                     '<div class="text-[10px] text-slate-500 mt-2 text-center">Ve hře od ' + new Date(p.joined || 0).toLocaleDateString('cs-CZ') + '</div>' +
@@ -500,21 +545,31 @@
             } else if (name === 'settings') {
                 const m = meta();
                 const sel = (id, opts, cur) => '<select id="' + id + '" class="' + inputCls + '">' + opts.map(o => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>';
-                title = '⚙️ Nastavení';
-                B.innerHTML = '<div class="text-xs text-slate-400 mb-1">Vzhled stránky</div><div id="theme-pick" class="grid grid-cols-3 gap-2 mb-4"></div><div class="text-xs text-slate-400 mb-1">Emoji na klikání</div><div id="emoji-pick" class="flex gap-2 mb-4"></div>' +
-                    '<div class="text-xs text-slate-400 mb-1">Profilovka (emoji)</div>' + sel('set-avatar', AVATARS.map(a => [a, a]), m.avatar) +
-                    '<div class="text-xs text-slate-400 mt-3 mb-1">Vlastní obrázek (nahradí emoji)</div><div class="flex items-center gap-3"><div id="img-prev"></div><div class="flex-1 space-y-1"><input id="set-img" type="file" accept="image/*" onchange="uploadAvatar(this)" class="w-full text-xs text-slate-300"><button onclick="removeAvatar()" class="text-xs bg-slate-700 px-2 py-1 rounded">Odebrat obrázek</button></div></div>' +
-                    '<div class="text-xs text-slate-400 mt-3 mb-1">Styl písma jména</div>' + sel('set-font', [['sans', 'Normální'], ['serif', 'Serif'], ['mono', 'Mono'], ['comic', 'Comic'], ['impact', 'Impact']], m.font) +
-                    '<div class="text-xs text-slate-400 mt-3 mb-1">Barva jména</div><input id="set-color" type="color" value="' + (m.color || '#fbbf24') + '" class="w-full h-10 bg-slate-950 border border-slate-700 rounded-lg">' +
-                    '<div class="text-xs text-slate-400 mt-3 mb-1">O mně</div><input id="set-bio" maxlength="60" value="' + escapeHtml(m.bio || '') + '" class="' + inputCls + '">' +
+                title = '⚙️ Nastavení'; draft = newDraft();
+                B.innerHTML = '<div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Hra</div>' +
+                    '<div class="text-xs text-slate-400 mb-1">Vzhled stránky</div><div id="theme-pick" class="grid grid-cols-3 gap-2 mb-3"></div>' +
+                    '<div class="text-xs text-slate-400 mb-1">Emoji na klikání</div><div id="emoji-pick" class="flex gap-2 mb-5"></div>' +
+                    '<div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Profil</div><div id="prof-prev" class="mb-3"></div>' +
+                    '<div class="text-xs text-slate-400 mb-1">Písmo jména (náhled s tvým jménem)</div><div id="font-grid" class="grid grid-cols-2 gap-2 mb-3 max-h-64 overflow-y-auto pr-1"></div>' +
+                    '<div class="text-xs text-slate-400 mb-1">Efekt jména</div><div id="fx-chips" class="flex flex-wrap gap-1.5 mb-3"></div>' +
+                    '<div class="grid grid-cols-3 gap-2 mb-3">' + colorIn('Barva jména', 'color') + colorIn('2. barva', 'color2') + colorIn('Pozadí profilu', 'banner') + '</div>' +
+                    '<div class="text-xs text-slate-400 mb-1">Profilovka</div><div id="av-chips" class="flex flex-wrap gap-1.5 mb-2"></div>' +
+                    '<div class="flex items-center gap-3 mb-3"><div id="img-prev"></div><div class="flex-1 space-y-1"><input id="set-img" type="file" accept="image/*" onchange="uploadAvatar(this)" class="w-full text-xs text-slate-300"><button onclick="removeAvatar()" class="text-xs bg-slate-700 px-2 py-1 rounded">Odebrat obrázek</button></div></div>' +
+                    '<div class="text-xs text-slate-400 mb-1">Rámeček profilovky</div><div id="frame-chips" class="flex flex-wrap gap-1.5 mb-3"></div>' +
+                    '<div class="text-xs text-slate-400 mb-1">O mně</div><input id="set-bio" maxlength="60" value="' + escapeHtml(draft.bio) + '" oninput="dset(\'bio\',this.value.slice(0,60))" class="' + inputCls + '">' +
                     '<button onclick="saveProfile()" class="mt-4 w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg">💾 Uložit profil</button>';
-                renderEmojiPick(); renderImgPrev(); renderThemePick();
+                renderEmojiPick(); renderImgPrev(); renderThemePick(); renderDraftParts();
             } else if (name === 'admin') {
                 if (!isAdmin()) { closeModal(); return; }
-                title = '🛡️ Admin – podezření na autoclicker';
-                B.innerHTML = '<div id="admin-list" class="space-y-3"></div><div class="text-sm font-bold text-red-400 mt-4 mb-2">👥 Všechny účty</div>' +
+                title = '🛡️ Admin';
+                B.innerHTML = '<div class="text-sm font-bold text-red-400 mb-2">🚨 Podezření na autoclicker</div><div id="admin-list" class="space-y-3"></div>' +
+                    '<div class="text-sm font-bold text-amber-400 mt-5 mb-2">🎖 Role a boosty</div>' +
+                    '<div class="bg-slate-800 rounded-xl p-3 space-y-2 text-xs"><div class="grid grid-cols-5 gap-2"><input id="rl-emoji" maxlength="4" placeholder="🔥" class="' + inputCls + ' col-span-1 text-center"><input id="rl-name" maxlength="20" placeholder="Název role" class="' + inputCls + ' col-span-3"><input id="rl-color" type="color" value="#fbbf24" class="h-full min-h-[2.25rem] w-full bg-slate-950 border border-slate-700 rounded-lg"></div>' +
+                    '<div class="grid grid-cols-2 gap-2"><label class="text-slate-400">CPS boost ×<input id="rl-cps" type="number" step="0.1" min="0.1" max="1000" value="1.5" class="' + inputCls + '"></label><label class="text-slate-400">Klik boost ×<input id="rl-click" type="number" step="0.1" min="0.1" max="1000" value="1.5" class="' + inputCls + '"></label></div>' +
+                    '<div class="flex gap-2"><button onclick="saveRole()" class="flex-1 bg-amber-500 text-slate-950 font-bold py-2 rounded-lg">💾 Uložit roli</button><button onclick="resetRoleForm()" class="bg-slate-700 px-3 rounded-lg">Nová</button></div></div><div id="role-list" class="space-y-2 mt-2"></div>' +
+                    '<div class="text-sm font-bold text-red-400 mt-5 mb-2">👥 Všechny účty</div>' +
                     '<input id="adm-q" oninput="renderAdminPlayers()" placeholder="Hledat hráče…" class="' + inputCls + ' mb-2"><div id="admin-players" class="space-y-2"></div>';
-                renderAdminList(); renderAdminPlayers();
+                renderAdminList(); renderAdminRoles(); renderAdminPlayers();
             }
             $('modal-title').textContent = title; $('modal').classList.remove('hidden');
         };
@@ -523,13 +578,13 @@
             const el = $('prof-list'); if (!el) return;
             const q = (($('prof-q') || {}).value || '').trim().toLowerCase();
             const list = allPlayers.filter(p => !q || (p.nick || '').toLowerCase().includes(q)).sort((a, b) => (b.coins || 0) - (a.coins || 0)).slice(0, 25);
-            el.innerHTML = list.length ? list.map(p => '<div data-u="' + p.id + '" onclick="openProfile(this.dataset.u)" class="cursor-pointer flex justify-between items-center bg-slate-800 hover:bg-slate-700 rounded-lg px-3 py-2"><span class="text-sm truncate" style="' + nickStyle(p) + '">' + nm(p) + '</span><span class="text-[10px] text-slate-400">' + (isOnline(p) ? '🟢' : '⚫') + ' ' + n0(p.coins) + '</span></div>').join('') : '<div class="text-xs text-slate-500">Nikdo nenalezen.</div>';
+            el.innerHTML = list.length ? list.map(p => '<div data-u="' + p.id + '" onclick="openProfile(this.dataset.u)" class="cursor-pointer flex justify-between items-center bg-slate-800 hover:bg-slate-700 rounded-lg px-3 py-2"><span class="text-sm truncate" >' + nm(p) + '</span><span class="text-[10px] text-slate-400">' + (isOnline(p) ? '🟢' : '⚫') + ' ' + n0(p.coins) + '</span></div>').join('') : '<div class="text-xs text-slate-500">Nikdo nenalezen.</div>';
         };
 
         window.renderDuelList = () => {
             const el = $('duel-list'); if (!el) return;
             const list = allPlayers.filter(p => p.id !== currentUser.uid).sort((a, b) => isOnline(b) - isOnline(a) || (b.coins || 0) - (a.coins || 0));
-            el.innerHTML = list.length ? list.map(p => '<div class="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2"><div class="min-w-0"><div class="text-sm truncate" style="' + nickStyle(p) + '">' + nm(p) + '</div><div class="text-[10px] text-slate-400">' + (isOnline(p) ? '🟢 online' : '⚫ offline') + ' · ' + n0(p.coins) + '</div></div>' +
+            el.innerHTML = list.length ? list.map(p => '<div class="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2"><div class="min-w-0"><div class="text-sm truncate" >' + nm(p) + '</div><div class="text-[10px] text-slate-400">' + (isOnline(p) ? '🟢 online' : '⚫ offline') + ' · ' + n0(p.coins) + '</div></div>' +
                 '<button ' + (isOnline(p) ? '' : 'disabled') + ' data-u="' + p.id + '" onclick="challenge(this.dataset.u)" class="bg-red-600 hover:bg-red-500 disabled:opacity-30 text-xs font-bold px-3 py-1.5 rounded-lg">⚔️ Vyzvat</button></div>').join('') : '<div class="text-xs text-slate-500">Zatím žádní další hráči.</div>';
         };
 
@@ -545,14 +600,43 @@
         }
         window.setTheme = (t) => { window.applyTheme(t); renderThemePick(); window.saveGameProgress(false); };
         window.setClickEmoji = (e) => { meta().emoji = e; window.applyEmoji(); renderEmojiPick(); window.saveGameProgress(false); };
-        window.saveProfile = () => {
+// --- koncept profilu (úpravy se hned ukazují v náhledu, uloží se až tlačítkem) ---
+        function newDraft() {
             const m = meta();
-            m.avatar = $('set-avatar').value; m.font = $('set-font').value; m.color = $('set-color').value; m.bio = $('set-bio').value.trim().slice(0, 60);
+            return { avatar: m.avatar || '🗿', font: m.font || 'sans', fx: m.fx || 'none', color: m.color || '#fbbf24', color2: m.color2 || '#ec4899', banner: m.banner || '#a855f7', frame: m.frame || 'none', bio: m.bio || '' };
+        }
+        function colorIn(label, key) {
+            return '<label class="text-[10px] text-slate-400">' + label + '<input type="color" value="' + okColor(draft[key], '#ffffff') + '" oninput="dset(\'' + key + '\',this.value)" class="w-full h-9 mt-0.5 bg-slate-950 border border-slate-700 rounded-lg"></label>';
+        }
+        function chips(key, items, cur) {
+            return items.map(i => '<button data-g="' + key + '" data-k="' + escapeHtml(i[0]) + '" onclick="dset(this.dataset.g,this.dataset.k)" class="px-2.5 py-1 rounded-full border text-xs font-bold ' +
+                (cur === i[0] ? 'border-amber-400 bg-slate-800 text-amber-300' : 'border-slate-700 text-slate-300') + '">' + escapeHtml(i[1]) + '</button>').join('');
+        }
+        function draftProfile() {
+            const d = draft;
+            return Object.assign(pubProfile(buildState()), { id: currentUser ? currentUser.uid : '', avatar: d.avatar, nickFont: d.font, nickFx: d.fx, nickColor: d.color, nickColor2: d.color2, banner: d.banner, frame: d.frame, bio: d.bio, img: meta().img || '' });
+        }
+        function renderDraftParts() {
+            if (!draft) return;
+            const prev = $('prof-prev'); if (prev) prev.innerHTML = profileHead(draftProfile(), 'Náhled profilu');
+            const nick = escapeHtml(($('player-nick').value.trim()) || 'Ukázka');
+            const fg = $('font-grid');
+            if (fg) fg.innerHTML = Object.keys(FONTS).map(k => '<button data-g="font" data-k="' + k + '" onclick="dset(this.dataset.g,this.dataset.k)" class="rounded-lg border-2 px-2 py-1.5 text-left ' + (draft.font === k ? 'border-amber-400 bg-slate-800' : 'border-slate-700') + '">' +
+                '<div class="text-[9px] text-slate-500 leading-none mb-1">' + FONT_NAMES[k] + '</div><div class="truncate text-base leading-tight" style="font-family:' + FONTS[k].replace(/"/g, "'") + ';color:' + okColor(draft.color, '#fbbf24') + '">' + nick + '</div></button>').join('');
+            const fx = $('fx-chips'); if (fx) fx.innerHTML = chips('fx', FX, draft.fx);
+            const ac = $('av-chips'); if (ac) ac.innerHTML = chips('avatar', AVATARS.map(a => [a, a]), draft.avatar);
+            const fc = $('frame-chips'); if (fc) fc.innerHTML = chips('frame', Object.keys(FRAMES).map(k => [k, FRAME_NAMES[k]]), draft.frame);
+        }
+        window.dset = (k, v) => { if (!draft) return; draft[k] = v; renderDraftParts(); };
+        window.saveProfile = () => {
+            if (!draft) return;
+            const m = meta(), d = draft;
+            m.avatar = d.avatar; m.font = d.font; m.fx = d.fx; m.color = d.color; m.color2 = d.color2; m.banner = d.banner; m.frame = d.frame; m.bio = String(d.bio || '').trim().slice(0, 60);
             window.saveGameProgress(false); toast('✅ Profil uložen', 2000);
         };
 
         // ---------- VLASTNÍ PROFILOVKA ----------
-        function renderImgPrev() { const el = $('img-prev'); if (el) el.innerHTML = av({ img: meta().img, avatar: meta().avatar }, 48); }
+        function renderImgPrev() { const el = $('img-prev'); if (el) el.innerHTML = av({ img: meta().img, avatar: meta().avatar }, 48); renderDraftParts(); }
         window.uploadAvatar = (inp) => {
             const f = inp.files && inp.files[0]; if (!f) return;
             if (!f.type.startsWith('image/')) { toast('Vyber obrázek.', 2500); return; }
@@ -643,6 +727,8 @@
             unsubs.push(onSnapshot(query(col('duels'), where('to', '==', currentUser.uid)), dh, er));
             unsubs.push(onSnapshot(query(col('transfers'), where('to', '==', currentUser.uid)), (s) => s.docChanges().forEach(ch => { if (ch.type !== 'removed') receiveTransfer({ id: ch.doc.id, ...ch.doc.data() }); }), er));
             unsubs.push(onSnapshot(doc(col('penalties'), currentUser.uid), (s) => { if (s.exists()) applyPenalty(s.data()); }, er));
+            unsubs.push(onSnapshot(col('roles'), (s) => { rolesMap = {}; s.docs.forEach(d => { rolesMap[d.id] = d.data(); }); rolesChanged(); }, er));
+            unsubs.push(onSnapshot(col('userRoles'), (s) => { userRoles = {}; s.docs.forEach(d => { userRoles[d.id] = (d.data() || {}).roleId; }); rolesChanged(); }, er));
             if (isAdmin()) unsubs.push(onSnapshot(col('reports'), (s) => { reports = s.docs.map(d => ({ id: d.id, ...d.data() })); if (modalName === 'admin') renderAdminList(); }, er));
         }
 
@@ -843,11 +929,73 @@ async function wipeOwnAccount() {
         }
 window.renderAdminPlayers = () => {
             const el = $('admin-players'); if (!el) return;
-            const q = (($('adm-q') || {}).value || '').trim().toLowerCase();
-            const list = allPlayers.filter(p => p.id !== currentUser.uid && (!q || (p.nick || '').toLowerCase().includes(q) || p.id.toLowerCase().includes(q))).slice(0, 50);
-            el.innerHTML = list.length ? list.map(p => '<div class="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2"><div class="min-w-0"><div class="text-sm truncate" style="' + nickStyle(p) + '">' + nm(p) + '</div>' +
-                '<div class="text-[10px] text-slate-500">' + (isOnline(p) ? '🟢' : '⚫') + ' ' + n0(p.coins) + ' · ' + escapeHtml(p.id.slice(0, 8)) + '…</div></div>' + (p.img ? '<button data-u="' + p.id + '" onclick="adminAct(this.dataset.u,\'noimg\')" class="bg-slate-600 hover:bg-slate-500 text-xs font-bold px-2 py-1.5 rounded-lg mr-1">🖼✖</button>' : '') +
-                '<button data-u="' + p.id + '" onclick="adminAct(this.dataset.u,\'delete\')" class="bg-red-700 hover:bg-red-600 text-xs font-bold px-3 py-1.5 rounded-lg">🗑 Smazat</button></div>').join('') : '<div class="text-xs text-slate-500">Nikdo nenalezen.</div>';
+            const q = (($('adm-q') || {}).value || '').trim().toLowerCase(), me = currentUser.uid;
+            const list = allPlayers.filter(p => !q || (p.nick || '').toLowerCase().includes(q) || p.id.toLowerCase().includes(q))
+                .sort((a, b) => (b.id === me) - (a.id === me)).slice(0, 50);
+            const roleSel = (uid) => '<select data-u="' + uid + '" onchange="assignRole(this.dataset.u,this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white"><option value="">— bez role —</option>' +
+                Object.keys(rolesMap).map(id => '<option value="' + escapeHtml(id) + '"' + (userRoles[uid] === id ? ' selected' : '') + '>' + escapeHtml(((rolesMap[id].emoji || '') + ' ' + (rolesMap[id].name || id)).trim()) + '</option>').join('') + '</select>';
+            el.innerHTML = list.length ? list.map(p => '<div class="bg-slate-800 rounded-lg px-3 py-2 space-y-1.5"><div class="flex items-center justify-between gap-2"><div class="min-w-0"><div class="text-sm truncate">' + nm(p) + (p.id === me ? ' <span class="text-[10px] text-slate-400">(já)</span>' : '') + '</div>' +
+                '<div class="text-[10px] text-slate-500">' + (isOnline(p) ? '🟢' : '⚫') + ' ' + n0(p.coins) + ' · ' + escapeHtml(p.id.slice(0, 8)) + '…</div></div><div class="flex shrink-0">' +
+                (p.img && p.id !== me ? '<button data-u="' + p.id + '" onclick="adminAct(this.dataset.u,\'noimg\')" class="bg-slate-600 hover:bg-slate-500 text-xs font-bold px-2 py-1.5 rounded-lg mr-1">🖼✖</button>' : '') +
+                (p.id !== me ? '<button data-u="' + p.id + '" onclick="adminAct(this.dataset.u,\'delete\')" class="bg-red-700 hover:bg-red-600 text-xs font-bold px-3 py-1.5 rounded-lg">🗑 Smazat</button>' : '') +
+                '</div></div>' + roleSel(p.id) + '</div>').join('') : '<div class="text-xs text-slate-500">Nikdo nenalezen.</div>';
+        };
+
+        // ---------- ROLE A BOOSTY (spravuje jen majitel) ----------
+        const clampMult = (x) => Math.min(1000, Math.max(0.1, Number(x) || 1));
+        function myBoost() {
+            const r = currentUser ? roleOf(currentUser.uid) : null;
+            return r ? { cps: clampMult(r.cpsMult), click: clampMult(r.clickMult) } : { cps: 1, click: 1 };
+        }
+        function rolesChanged() {
+            if (window.gameAPI) api().setBoost(myBoost());
+            if (allPlayers.length) renderLeaderboardUI(allPlayers.slice(0, 15));
+            if (window.onPlayers) window.onPlayers();
+            if (modalName === 'admin') renderAdminRoles();
+            if (modalName === 'settings') renderDraftParts();
+        }
+        window.renderAdminRoles = () => {
+            const el = $('role-list'); if (!el) return;
+            const ids = Object.keys(rolesMap);
+            el.innerHTML = ids.length ? ids.map(id => {
+                const r = rolesMap[id], members = Object.keys(userRoles).filter(u => userRoles[u] === id).length;
+                return '<div class="flex items-center justify-between gap-2 bg-slate-800 rounded-lg px-3 py-2"><div class="min-w-0"><div class="text-sm">' + roleBadge2(r) + '</div>' +
+                    '<div class="text-[10px] text-slate-400">CPS ×' + clampMult(r.cpsMult) + ' · klik ×' + clampMult(r.clickMult) + ' · členů: ' + members + '</div></div><div class="flex shrink-0 gap-1">' +
+                    '<button data-id="' + escapeHtml(id) + '" onclick="editRole(this.dataset.id)" class="bg-slate-600 px-2 py-1 rounded text-xs">✏️</button>' +
+                    '<button data-id="' + escapeHtml(id) + '" onclick="deleteRole(this.dataset.id)" class="bg-red-700 px-2 py-1 rounded text-xs">🗑</button></div></div>';
+            }).join('') : '<div class="text-xs text-slate-500">Zatím žádné role. Vytvoř první nahoře.</div>';
+        };
+        function roleBadge2(r) { const c = okColor(r.color, '#fbbf24'); return '<span class="role-badge" style="color:' + c + ';border-color:' + c + ';font-size:.75rem;padding:.1rem .6rem">' + escapeHtml(((r.emoji || '') + ' ' + (r.name || '')).trim()) + '</span>'; }
+        window.resetRoleForm = () => { editRoleId = null; $('rl-emoji').value = ''; $('rl-name').value = ''; $('rl-color').value = '#fbbf24'; $('rl-cps').value = '1.5'; $('rl-click').value = '1.5'; };
+        window.editRole = (id) => {
+            const r = rolesMap[id]; if (!r) return; editRoleId = id;
+            $('rl-emoji').value = r.emoji || ''; $('rl-name').value = r.name || ''; $('rl-color').value = okColor(r.color, '#fbbf24'); $('rl-cps').value = clampMult(r.cpsMult); $('rl-click').value = clampMult(r.clickMult);
+        };
+        window.saveRole = async () => {
+            if (!isAdmin()) return;
+            const name = $('rl-name').value.trim().slice(0, 20);
+            if (!name) { toast('Zadej název role.', 2500); return; }
+            const id = editRoleId || 'r' + Date.now().toString(36);
+            try {
+                await setDoc(doc(col('roles'), id), { name: name, emoji: $('rl-emoji').value.trim().slice(0, 4), color: okColor($('rl-color').value, '#fbbf24'), cpsMult: clampMult($('rl-cps').value), clickMult: clampMult($('rl-click').value), updatedAt: Date.now() });
+                window.resetRoleForm(); toast('✅ Role uložena', 2500);
+            } catch (e) { toast('Roli se nepodařilo uložit (' + e.code + ')', 5000); }
+        };
+        window.deleteRole = async (id) => {
+            if (!isAdmin() || !rolesMap[id]) return;
+            if (!confirm('Smazat roli "' + rolesMap[id].name + '"? Všem členům se odebere.')) return;
+            try {
+                await Promise.allSettled(Object.keys(userRoles).filter(u => userRoles[u] === id).map(u => deleteDoc(doc(col('userRoles'), u))));
+                await deleteDoc(doc(col('roles'), id));
+                if (editRoleId === id) window.resetRoleForm();
+            } catch (e) { toast('Mazání role selhalo (' + e.code + ')', 5000); }
+        };
+        window.assignRole = async (uid, rid) => {
+            if (!isAdmin()) return;
+            try {
+                if (rid) await setDoc(doc(col('userRoles'), uid), { roleId: rid, ts: Date.now() });
+                else await deleteDoc(doc(col('userRoles'), uid));
+            } catch (e) { toast('Přiřazení role selhalo (' + e.code + ')', 5000); }
         };
         window.adminAct = async (uid, act) => {
             if (!isAdmin()) return;
@@ -936,20 +1084,22 @@ window.renderAdminPlayers = () => {
             { id: 'masturbator-natuszkovebaterie',  emoji: '🔋', name: 'Masturbátor na tužkové baterky', price: 1000000, cps: 600000, clickPower: 200000, stock: 2, maxPerPlayer: 1000000 },
             // --- nové dropy (wheelW = šance v kole štěstí, výchozí 2; wheel: false = v kole nepadá) ---
             { id: 'vysavac-spermii',  emoji: '🐍', name: 'Vysavač spermií', price: 100000000, cps: 1200000, clickPower: 1000000, stock: 1, maxPerPlayer: 1000000, wheelW: 0.5 },
-            { id: 'bullet-vibrator',  emoji: '💜', name: 'Mini vibrátor Bullet', price: 150000, cps: 60000, clickPower: 25000, stock: 15, maxPerPlayer: 1000000 },
-            { id: 'cock-ring',  emoji: '⭕', name: 'Vibrační erekční kroužek', price: 400000, cps: 150000, clickPower: 60000, stock: 12, maxPerPlayer: 100000 },
-            { id: 'silikon-lubrikant',  emoji: '🧴', name: 'Silikonový lubrikant XXL', price: 800000, cps: 280000, clickPower: 110000, stock: 10, maxPerPlayer: 100000 },
-            { id: 'pouta-saten',  emoji: '🔗', name: 'Saténová pouta', price: 1500000, cps: 420000, clickPower: 160000, stock: 8, maxPerPlayer: 1000000 },
-            { id: 'prostata-masager',  emoji: '🔮', name: 'Prostatický masér', price: 3000000, cps: 650000, clickPower: 250000, stock: 6, maxPerPlayer: 1000000 },
-            { id: 'vakuova-pumpa',  emoji: '🫧', name: 'Vakuová pumpa', price: 6000000, cps: 1000000, clickPower: 400000, stock: 5, maxPerPlayer: 10000000 },
-            { id: 'magic-wand',  emoji: '🪄', name: 'Magic Wand masážní hlavice', price: 12000000, cps: 1600000, clickPower: 650000, stock: 4, maxPerPlayer: 10000000 },
-            { id: 'fleshlight-turbo',  emoji: '🔦', name: 'Fleshlight Turbo', price: 25000000, cps: 2500000, clickPower: 900000, stock: 3, maxPerPlayer: 1000000 },
-            { id: 'sex-machine',  emoji: '⚙️', name: 'Sex machine s dálkovým ovladačem', price: 60000000, cps: 4500000, clickPower: 1800000, stock: 2, maxPerPlayer: 100000, wheelW: 1 }
+            { id: 'bullet-vibrator',  emoji: '💜', name: 'Mini vibrátor Bullet', price: 150000, cps: 60000, clickPower: 25000, stock: 15, maxPerPlayer: 3 },
+            { id: 'cock-ring',  emoji: '⭕', name: 'Vibrační erekční kroužek', price: 400000, cps: 150000, clickPower: 60000, stock: 12, maxPerPlayer: 2 },
+            { id: 'silikon-lubrikant',  emoji: '🧴', name: 'Silikonový lubrikant XXL', price: 800000, cps: 280000, clickPower: 110000, stock: 10, maxPerPlayer: 3 },
+            { id: 'pouta-saten',  emoji: '🔗', name: 'Saténová pouta', price: 1500000, cps: 420000, clickPower: 160000, stock: 8, maxPerPlayer: 2 },
+            { id: 'prostata-masager',  emoji: '🔮', name: 'Prostatický masér', price: 3000000, cps: 650000, clickPower: 250000, stock: 6, maxPerPlayer: 1 },
+            { id: 'vakuova-pumpa',  emoji: '🫧', name: 'Vakuová pumpa', price: 6000000, cps: 1000000, clickPower: 400000, stock: 5, maxPerPlayer: 1 },
+            { id: 'magic-wand',  emoji: '🪄', name: 'Magic Wand masážní hlavice', price: 12000000, cps: 1600000, clickPower: 650000, stock: 4, maxPerPlayer: 1 },
+            { id: 'fleshlight-turbo',  emoji: '🔦', name: 'Fleshlight Turbo', price: 25000000, cps: 2500000, clickPower: 900000, stock: 3, maxPerPlayer: 1 },
+            { id: 'sex-machine',  emoji: '⚙️', name: 'Sex machine s dálkovým ovladačem', price: 60000000, cps: 4500000, clickPower: 1800000, stock: 2, maxPerPlayer: 1, wheelW: 1 }
         ];
 
         let score = 0, totalCps = 0, clickPower = 1, totalClicks = 0;
         let limited = { owned: {}, slot: 0, slotBought: 0 };
-        const meta = { theme: (function () { try { return localStorage.getItem('goon_theme') || 'noc'; } catch (e) { return 'noc'; } })(), avatar: '🗿', font: 'sans', color: '#fbbf24', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, joined: Date.now() };
+        let roleBoost = { cps: 1, click: 1 };
+        const effCps = () => totalCps * roleBoost.cps, effClick = () => clickPower * roleBoost.click;
+        const meta = { fx: 'none', color2: '#ec4899', banner: '#a855f7', frame: 'none', theme: (function () { try { return localStorage.getItem('goon_theme') || 'noc'; } catch (e) { return 'noc'; } })(), avatar: '🗿', font: 'sans', color: '#fbbf24', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, joined: Date.now() };
 
         // ===== KOLO ŠTĚSTÍ =====
         // cost = cena zatočení, w = váha (šance). Limitované dropy se do kola přidávají automaticky (w: 2 každý).
@@ -964,8 +1114,8 @@ window.renderAdminPlayers = () => {
         function syncGlobalState() {
             window.gameScore = score;
             window.gameClicks = totalClicks;
-            window.gameCps = totalCps;
-            window.gameClickPower = clickPower;
+            window.gameCps = effCps();
+            window.gameClickPower = effClick();
             window.gameLimited = limited;
             window.gameMeta = meta;
             window.gameUpgradesState = upgrades.map(u => ({ count: u.count, currentPrice: u.currentPrice }));
@@ -1079,8 +1229,8 @@ window.renderAdminPlayers = () => {
 
         function updateUI() {
             scoreUI.textContent = fmt(score); scoreUI.title = Math.floor(score).toLocaleString('cs-CZ');
-            cpsUI.textContent = '+' + fmt(totalCps) + ' / s';
-            const pw = document.getElementById('power-val'); if (pw) pw.textContent = '+' + fmt(clickPower) + ' / klik';
+            cpsUI.textContent = '+' + fmt(effCps()) + ' / s' + (roleBoost.cps !== 1 ? ' ⚡×' + roleBoost.cps : '');
+            const pw = document.getElementById('power-val'); if (pw) pw.textContent = '+' + fmt(effClick()) + ' / klik' + (roleBoost.click !== 1 ? ' ⚡×' + roleBoost.click : '');
             clicksUI.textContent = fmt(totalClicks);
             if (typeof refreshDrop === 'function') refreshDrop();
             upgrades.forEach((u, i) => {
@@ -1136,12 +1286,12 @@ window.renderAdminPlayers = () => {
 
         document.getElementById('main-click-btn').addEventListener('click', (e) => {
             mainDet(e);
-            score += clickPower;
+            score += effClick();
             totalClicks++;
 
             const floatEl = document.createElement('div');
             floatEl.className = 'float-text';
-            floatEl.textContent = '+' + fmt(clickPower);
+            floatEl.textContent = '+' + fmt(effClick());
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX || (rect.left + rect.width / 2);
             const y = e.clientY || (rect.top + rect.height / 2);
@@ -1158,7 +1308,7 @@ window.renderAdminPlayers = () => {
         });
 
         setInterval(() => {
-            if (totalCps > 0) { score += totalCps; syncGlobalState(); updateUI(); }
+            if (totalCps > 0) { score += effCps(); syncGlobalState(); updateUI(); }
         }, 1000);
 
         // ===== OBROVSKÁ BÍLÁ EXPLOZE (konec souboje) =====
@@ -1191,10 +1341,11 @@ window.renderAdminPlayers = () => {
         window.gameAPI = {
             score: () => score,
             addCoins(n) { score = Math.max(0, score + n); syncGlobalState(); updateUI(); },
+            setBoost(b) { roleBoost = { cps: Number(b.cps) || 1, click: Number(b.click) || 1 }; syncGlobalState(); updateUI(); },
             giveDrop(id) { limited.owned[id] = (limited.owned[id] || 0) + 1; recalcTotals(); syncGlobalState(); updateUI(); },
             wipe() {
                 this.penalty({ reset: true });
-                Object.assign(meta, { avatar: '🗿', font: 'sans', color: '#fbbf24', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, bestKps: 0, bestTime: 0, img: '', joined: Date.now() });
+                Object.assign(meta, { avatar: '🗿', font: 'sans', fx: 'none', color: '#fbbf24', color2: '#ec4899', banner: '#a855f7', frame: 'none', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, bestKps: 0, bestTime: 0, img: '', joined: Date.now() });
                 applyEmoji(); syncGlobalState(); updateUI();
             },
             penalty(p) {
