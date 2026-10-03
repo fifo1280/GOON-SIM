@@ -15,7 +15,7 @@
         })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Orbitron:wght@700&family=Press+Start+2P&family=Bebas+Neue&family=Lobster&family=Permanent+Marker&family=Righteous&family=Creepster&family=Cinzel:wght@700&family=Caveat:wght@700&family=Bangers&family=Audiowide&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Orbitron:wght@700&family=Press+Start+2P&family=Bebas+Neue&family=Lobster&family=Permanent+Marker&family=Righteous&family=Creepster&family=Cinzel:wght@700&family=Caveat:wght@700&family=Bangers&family=Audiowide&family=Monoton&family=Bungee&family=Rye&family=Special+Elite&family=Shrikhand&family=Yellowtail&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         const V = (n) => 'rgb(var(--' + n + ') / <alpha-value>)';
@@ -43,7 +43,7 @@
         @keyframes explode { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
     
         /* ===== MOTIVY (barvy se berou z proměnných) ===== */
-        :root, :root[data-theme="noc"], :root[data-theme="light"] #duel-ov {
+        :root, :root[data-theme="noc"], :root:is([data-theme="light"],[data-theme="sakura"]) #duel-ov {
             --bg:2 6 23; --c1:15 23 42; --c2:30 41 59; --b1:51 65 85; --b2:71 85 105; --t5:100 116 139; --t4:148 163 184; --t3:203 213 225; --t1:241 245 249;
             --a3:252 211 77; --a4:251 191 36; --a5:245 158 11; --a6:217 119 6; --a9:69 26 3;
             --p3:216 180 254; --p4:192 132 252; --p5:168 85 247; --p6:147 51 234; --p9:59 7 100;
@@ -53,17 +53,43 @@
             --a3:249 168 212; --a4:244 114 182; --a5:236 72 153; --a6:219 39 119; --a9:80 7 36;
             --p3:103 232 249; --p4:34 211 238; --p5:6 182 212; --p6:8 145 178; --p9:8 51 68;
         }
+        :root[data-theme="ocean"] {
+            --bg:3 14 28; --c1:8 28 50; --c2:15 46 78; --b1:30 75 115; --b2:50 100 145; --t5:100 140 170; --t4:140 175 200; --t3:190 215 230; --t1:235 245 252;
+            --a3:94 234 212; --a4:45 212 191; --a5:20 184 166; --a6:13 148 136; --a9:4 47 46;
+            --p3:147 197 253; --p4:96 165 250; --p5:59 130 246; --p6:37 99 235; --p9:23 37 84;
+        }
+        :root[data-theme="sunset"] {
+            --bg:20 8 14; --c1:40 14 24; --c2:66 24 38; --b1:110 40 56; --b2:150 65 80; --t5:170 120 130; --t4:205 150 155; --t3:235 195 195; --t1:255 240 235;
+            --a3:253 186 116; --a4:251 146 60; --a5:249 115 22; --a6:234 88 12; --a9:67 20 7;
+            --p3:253 164 175; --p4:251 113 133; --p5:244 63 94; --p6:225 29 72; --p9:76 5 25;
+        }
+        :root[data-theme="forest"] {
+            --bg:4 16 10; --c1:10 30 20; --c2:18 50 33; --b1:35 85 56; --b2:55 115 78; --t5:110 150 125; --t4:150 185 165; --t3:200 225 210; --t1:238 250 242;
+            --a3:254 240 138; --a4:250 204 21; --a5:234 179 8; --a6:202 138 4; --a9:66 32 6;
+            --p3:134 239 172; --p4:74 222 128; --p5:34 197 94; --p6:22 163 74; --p9:5 46 22;
+        }
+        :root[data-theme="hacker"] {
+            --bg:0 0 0; --c1:4 12 4; --c2:8 28 8; --b1:20 80 20; --b2:30 120 30; --t5:40 130 40; --t4:60 175 60; --t3:110 220 110; --t1:180 255 180;
+            --a3:190 242 100; --a4:163 230 53; --a5:132 204 22; --a6:101 163 13; --a9:26 46 5;
+            --p3:110 231 183; --p4:52 211 153; --p5:16 185 129; --p6:5 150 105; --p9:2 44 34;
+        }
+        :root[data-theme="hacker"] body, :root[data-theme="hacker"] button, :root[data-theme="hacker"] input { font-family: "Courier New", ui-monospace, monospace; }
+        :root[data-theme="sakura"] {
+            --bg:255 245 248; --c1:255 255 255; --c2:252 231 243; --b1:249 200 224; --b2:232 150 190; --t5:160 110 135; --t4:130 80 105; --t3:90 45 70; --t1:50 15 35;
+            --a3:159 18 57; --a4:190 24 93; --a5:236 72 153; --a6:219 39 119; --a9:253 242 248;
+            --p3:109 40 217; --p4:126 34 206; --p5:168 85 247; --p6:147 51 234; --p9:243 232 255;
+        }
         :root[data-theme="light"] {
             --bg:244 246 251; --c1:255 255 255; --c2:226 232 240; --b1:203 213 225; --b2:148 163 184; --t5:120 133 154; --t4:90 104 128; --t3:55 68 92; --t1:15 23 42;
             --a3:161 98 7; --a4:180 83 9; --a5:245 158 11; --a6:217 119 6; --a9:254 243 199;
             --p3:109 40 217; --p4:126 34 206; --p5:168 85 247; --p6:147 51 234; --p9:237 233 254;
         }
-        :root[data-theme="light"] .text-white { color: rgb(var(--t1)); }
-        :root[data-theme="light"] #duel-ov .text-white { color: #fff; }
-        :root[data-theme="light"] .text-slate-950 { color: #111827; }
-        :root[data-theme="light"] .text-slate-900 { color: #0f172a; }
-        :root[data-theme="light"] button[class*="bg-red-"], :root[data-theme="light"] button[class*="bg-purple-"],
-        :root[data-theme="light"] button[class*="bg-green-"], :root[data-theme="light"] button[class*="bg-sky-"] { color: #fff; }
+        :root:is([data-theme="light"],[data-theme="sakura"]) .text-white { color: rgb(var(--t1)); }
+        :root:is([data-theme="light"],[data-theme="sakura"]) #duel-ov .text-white { color: #fff; }
+        :root:is([data-theme="light"],[data-theme="sakura"]) .text-slate-950 { color: #111827; }
+        :root:is([data-theme="light"],[data-theme="sakura"]) .text-slate-900 { color: #0f172a; }
+        :root:is([data-theme="light"],[data-theme="sakura"]) button[class*="bg-red-"], :root:is([data-theme="light"],[data-theme="sakura"]) button[class*="bg-purple-"],
+        :root:is([data-theme="light"],[data-theme="sakura"]) button[class*="bg-green-"], :root:is([data-theme="light"],[data-theme="sakura"]) button[class*="bg-sky-"] { color: #fff; }
         :root[data-theme="neon"] #main-click-btn { filter: drop-shadow(0 0 28px rgb(var(--a5) / .8)); }
         :root[data-theme="neon"] h1 { text-shadow: 0 0 18px rgb(var(--p5) / .6); }
 
@@ -105,6 +131,7 @@
             .nav-btn.admin { margin-left: auto; }
         }
 
+        @keyframes nickNeon { from { text-shadow: 0 0 3px var(--nc), 0 0 8px var(--nc); } to { text-shadow: 0 0 8px var(--nc), 0 0 20px var(--nc), 0 0 36px var(--nc); } }
         @keyframes nickRainbow { from { background-position: 0% 0; } to { background-position: 300% 0; } }
         .role-badge { display: inline-block; font-size: .6rem; font-weight: 800; line-height: 1.3; border: 1px solid; border-radius: 9999px; padding: 0 .4rem; vertical-align: middle; font-family: ui-sans-serif,system-ui,sans-serif; letter-spacing: 0; }
     </style>
@@ -435,11 +462,19 @@
         const ADMIN_EMAIL = 'filip.netolickyfifo@gmail.com';
         const FONTS = { sans: 'ui-sans-serif,system-ui,sans-serif', serif: 'Georgia,serif', mono: '"Courier New",monospace', comic: '"Comic Sans MS","Chalkboard SE",cursive', impact: 'Impact,"Arial Black",sans-serif',
             pacifico: '"Pacifico",cursive', orbitron: '"Orbitron",sans-serif', pixel: '"Press Start 2P",monospace', bebas: '"Bebas Neue",sans-serif', lobster: '"Lobster",cursive', marker: '"Permanent Marker",cursive',
-            righteous: '"Righteous",sans-serif', creepster: '"Creepster",cursive', cinzel: '"Cinzel",serif', caveat: '"Caveat",cursive', bangers: '"Bangers",cursive', audiowide: '"Audiowide",sans-serif' };
-        const FONT_NAMES = { sans: 'Normální', serif: 'Serif', mono: 'Mono', comic: 'Comic', impact: 'Impact', pacifico: 'Pacifico', orbitron: 'Orbitron', pixel: 'Pixel', bebas: 'Bebas', lobster: 'Lobster', marker: 'Fix', righteous: 'Righteous', creepster: 'Creepster', cinzel: 'Cinzel', caveat: 'Rukopis', bangers: 'Bangers', audiowide: 'Audiowide' };
-        const FX = [['none', 'Žádný'], ['bold', 'Tučný'], ['glow', 'Záře'], ['gradient', 'Přechod'], ['rainbow', '🌈 Duha'], ['shadow', 'Stín']];
-        const FRAMES = { none: null, gold: 'linear-gradient(135deg,#fde68a,#f59e0b,#b45309)', neon: 'linear-gradient(135deg,#22d3ee,#a855f7,#ec4899)', fire: 'linear-gradient(135deg,#fde047,#f97316,#dc2626)', rainbow: 'conic-gradient(#f87171,#fbbf24,#4ade80,#22d3ee,#a78bfa,#f472b6,#f87171)', ice: 'linear-gradient(135deg,#e0f2fe,#38bdf8,#6366f1)' };
-        const FRAME_NAMES = { none: 'Bez rámečku', gold: '🥇 Zlatý', neon: '💜 Neon', fire: '🔥 Oheň', rainbow: '🌈 Duha', ice: '🧊 Led' };
+            righteous: '"Righteous",sans-serif', creepster: '"Creepster",cursive', cinzel: '"Cinzel",serif', caveat: '"Caveat",cursive', bangers: '"Bangers",cursive', audiowide: '"Audiowide",sans-serif',
+            monoton: '"Monoton",cursive', bungee: '"Bungee",cursive', rye: '"Rye",cursive', elite: '"Special Elite",monospace', shrikhand: '"Shrikhand",cursive', yellowtail: '"Yellowtail",cursive' };
+        const PREMIUM_FONTS = ['monoton', 'bungee', 'rye', 'elite', 'shrikhand', 'yellowtail'];
+        const PREMIUM_FX = ['fire', 'gold', 'neon', 'glitch'];
+        const PREMIUM_FRAMES = ['diamond', 'aurora', 'lava', 'galaxy'];
+        const PREMIUM_BSTYLE = ['gradient', 'stripes', 'dots'];
+        const BSTYLES = [['fade', 'Jemný'], ['solid', 'Plný'], ['gradient', 'Přechod'], ['stripes', 'Pruhy'], ['dots', 'Tečky']];
+        const PERKS = [['fx', '✨ Prémiové efekty jména'], ['fonts', '🔤 Prémiová písma'], ['frames', '🖼 Prémiové rámečky'], ['banner', '🎨 Stylová pozadí profilu'], ['title', '🏷 Vlastní titulek'], ['bio', '📝 Delší popis (160 znaků)']];
+        const FONT_NAMES = { sans: 'Normální', serif: 'Serif', mono: 'Mono', comic: 'Comic', impact: 'Impact', pacifico: 'Pacifico', orbitron: 'Orbitron', pixel: 'Pixel', bebas: 'Bebas', lobster: 'Lobster', marker: 'Fix', righteous: 'Righteous', creepster: 'Creepster', cinzel: 'Cinzel', caveat: 'Rukopis', bangers: 'Bangers', audiowide: 'Audiowide', monoton: 'Monoton', bungee: 'Bungee', rye: 'Rye', elite: 'Psací stroj', shrikhand: 'Shrikhand', yellowtail: 'Yellowtail' };
+        const FX = [['none', 'Žádný'], ['bold', 'Tučný'], ['glow', 'Záře'], ['gradient', 'Přechod'], ['rainbow', '🌈 Duha'], ['shadow', 'Stín'], ['fire', '🔥 Oheň'], ['gold', '🥇 Zlato'], ['neon', '💡 Neon'], ['glitch', '👾 Glitch']];
+        const FRAMES = { none: null, gold: 'linear-gradient(135deg,#fde68a,#f59e0b,#b45309)', neon: 'linear-gradient(135deg,#22d3ee,#a855f7,#ec4899)', fire: 'linear-gradient(135deg,#fde047,#f97316,#dc2626)', rainbow: 'conic-gradient(#f87171,#fbbf24,#4ade80,#22d3ee,#a78bfa,#f472b6,#f87171)', ice: 'linear-gradient(135deg,#e0f2fe,#38bdf8,#6366f1)',
+            diamond: 'linear-gradient(135deg,#ecfeff,#67e8f9,#f0f9ff,#22d3ee)', aurora: 'linear-gradient(135deg,#34d399,#38bdf8,#a78bfa,#34d399)', lava: 'linear-gradient(135deg,#7f1d1d,#ef4444,#f97316,#7f1d1d)', galaxy: 'conic-gradient(#1e1b4b,#7c3aed,#ec4899,#38bdf8,#1e1b4b)' };
+        const FRAME_NAMES = { none: 'Bez rámečku', gold: '🥇 Zlatý', neon: '💜 Neon', fire: '🔥 Oheň', rainbow: '🌈 Duha', ice: '🧊 Led', diamond: '💎 Diamant', aurora: '🌌 Polární záře', lava: '🌋 Láva', galaxy: '🪐 Galaxie' };
         const AVATARS = ['🗿', '😎', '🔥', '👑', '🦄', '🐉', '💀', '🤡', '🍒', '🍑', '🍆', '😈', '💦', '🍌', '🌶️', '💎', '⭐', '🦍', '👽', '🐸'];
         const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
         const okColor = (c, d) => /^#[0-9a-f]{6}$/i.test(c || '') ? c : d;
@@ -454,10 +489,17 @@
         const n0 = (n) => window.abbr(n || 0);
         const toast = (t, ms) => window.showToast(t, ms);
         function nickStyle(p) {
-            const f = own(FONTS, p.nickFont) ? FONTS[p.nickFont] : FONTS.sans, c = okColor(p.nickColor, '#fbbf24'), c2 = okColor(p.nickColor2, '#ec4899');
+            let fx = p.nickFx, fnt = own(FONTS, p.nickFont) ? p.nickFont : 'sans';
+            if (PREMIUM_FX.indexOf(fx) >= 0 && !hasPerk(p.id, 'fx')) fx = 'none';
+            if (PREMIUM_FONTS.indexOf(fnt) >= 0 && !hasPerk(p.id, 'fonts')) fnt = 'sans';
+            const f = FONTS[fnt], c = okColor(p.nickColor, '#fbbf24'), c2 = okColor(p.nickColor2, '#ec4899');
             let st = 'font-family:' + f.replace(/"/g, "'") + ';color:' + c;
             const clip = ';-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent';
-            switch (p.nickFx) {
+            switch (fx) {
+                case 'fire': st += ';background:linear-gradient(90deg,#fde047,#f97316,#dc2626,#f97316,#fde047);background-size:300% 100%' + clip + ';animation:nickRainbow 3s linear infinite'; break;
+                case 'gold': st += ';background:linear-gradient(90deg,#b45309,#fde68a,#f59e0b,#fde68a,#b45309);background-size:300% 100%' + clip + ';animation:nickRainbow 5s linear infinite'; break;
+                case 'neon': st += ';--nc:' + c + ';text-shadow:0 0 6px ' + c + ',0 0 14px ' + c + ';animation:nickNeon 1.6s ease-in-out infinite alternate'; break;
+                case 'glitch': st += ';text-shadow:2px 0 #22d3ee,-2px 0 #ec4899'; break;
                 case 'bold': st += ';font-weight:900'; break;
                 case 'glow': st += ';text-shadow:0 0 6px ' + c + ',0 0 16px ' + c; break;
                 case 'shadow': st += ';text-shadow:2px 2px 0 ' + c2; break;
@@ -465,6 +507,20 @@
                 case 'rainbow': st += ';background:linear-gradient(90deg,#f87171,#fbbf24,#4ade80,#22d3ee,#a78bfa,#f472b6,#f87171);background-size:300% 100%' + clip + ';animation:nickRainbow 4s linear infinite'; break;
             }
             return st;
+        }
+        // Výhoda role: majitel má všechny, ostatní jen když jejich role výhodu povoluje
+        function hasPerk(uid, k) {
+            if (currentUser && uid && uid === currentUser.uid && isAdmin()) return true;
+            const r = uid ? roleOf(uid) : null;
+            return !!(r && r.perks && r.perks[k]);
+        }
+        function isLocked(key, val) {
+            const uid = currentUser ? currentUser.uid : '';
+            if (key === 'font') return PREMIUM_FONTS.indexOf(val) >= 0 && !hasPerk(uid, 'fonts');
+            if (key === 'fx') return PREMIUM_FX.indexOf(val) >= 0 && !hasPerk(uid, 'fx');
+            if (key === 'frame') return PREMIUM_FRAMES.indexOf(val) >= 0 && !hasPerk(uid, 'frames');
+            if (key === 'bstyle') return PREMIUM_BSTYLE.indexOf(val) >= 0 && !hasPerk(uid, 'banner');
+            return false;
         }
         function roleOf(uid) { const r = own(userRoles, uid) ? rolesMap[userRoles[uid]] : null; return r || null; }
         function roleBadge(uid) {
@@ -478,18 +534,32 @@
             const inner = IMG_OK.test(p.img || '')
                 ? '<img src="' + p.img + '" class="inline-block rounded-full object-cover align-middle" style="width:' + px + 'px;height:' + px + 'px">'
                 : '<span style="font-size:' + Math.round(px * 0.9) + 'px;line-height:1">' + escapeHtml(p.avatar || '🗿') + '</span>';
-            const fr = own(FRAMES, p.frame) ? FRAMES[p.frame] : null;
+            const fr = own(FRAMES, p.frame) && !(PREMIUM_FRAMES.indexOf(p.frame) >= 0 && !hasPerk(p.id, 'frames')) ? FRAMES[p.frame] : null;
             if (!fr) return inner;
             return '<span class="inline-flex items-center justify-center rounded-full align-middle" style="background:' + fr + ';padding:' + (px >= 40 ? 3 : 2) + 'px;box-shadow:0 0 ' + (px >= 40 ? 14 : 6) + 'px rgba(255,255,255,.25)">' +
                 '<span class="inline-flex items-center justify-center rounded-full overflow-hidden" style="background:rgb(var(--c1));width:' + px + 'px;height:' + px + 'px">' + inner + '</span></span>';
         };
         const nm = (p, px) => av(p, px || 18) + ' <span style="' + nickStyle(p) + '">' + escapeHtml(p.nick || 'Hráč') + '</span>' + roleBadge(p.id);
+        function bannerBg(p) {
+            const b1 = okColor(p.banner, ''), b2 = okColor(p.banner2, '#38bdf8'); if (!b1) return '';
+            let st = own({ fade: 1, solid: 1, gradient: 1, stripes: 1, dots: 1 }, p.bstyle) ? p.bstyle : 'fade';
+            if (PREMIUM_BSTYLE.indexOf(st) >= 0 && !hasPerk(p.id, 'banner')) st = 'fade';
+            switch (st) {
+                case 'solid': return 'background:' + b1 + '44';
+                case 'gradient': return 'background:linear-gradient(135deg,' + b1 + '88,' + b2 + '88)';
+                case 'stripes': return 'background:repeating-linear-gradient(45deg,' + b1 + '55,' + b1 + '55 12px,' + b2 + '55 12px,' + b2 + '55 24px)';
+                case 'dots': return 'background:radial-gradient(' + b2 + '99 18%,transparent 20%) 0 0/16px 16px,' + b1 + '44';
+                default: return 'background:linear-gradient(135deg,' + b1 + '55,transparent 75%)';
+            }
+        }
         function profileHead(p, status) {
-            const ban = okColor(p.banner, '');
-            return '<div class="rounded-xl p-4 text-center mb-3 border border-slate-700" style="' + (ban ? 'background:linear-gradient(135deg,' + ban + '55,transparent 75%)' : '') + '">' +
+            const title = hasPerk(p.id, 'title') ? String(p.title || '').slice(0, 30) : '';
+            const bio = String(p.bio || '').slice(0, hasPerk(p.id, 'bio') ? 160 : 60);
+            return '<div class="rounded-xl p-4 text-center mb-3 border border-slate-700" style="' + bannerBg(p) + '">' +
                 '<div class="flex justify-center">' + av(p, 72) + '</div><div class="text-2xl font-black mt-1.5 break-words" style="' + nickStyle(p) + '">' + escapeHtml(p.nick || 'Hráč') + '</div>' +
+                (title ? '<div class="text-xs font-bold tracking-wide mt-0.5" style="color:' + okColor(p.nickColor2, '#ec4899') + '">' + escapeHtml(title) + '</div>' : '') +
                 (roleBadge(p.id) ? '<div class="mt-1">' + roleBadge(p.id) + '</div>' : '') +
-                '<div class="text-xs text-slate-400 mt-1">' + status + '</div><div class="text-sm text-slate-300 mt-2 italic">' + escapeHtml(p.bio || '') + '</div></div>';
+                '<div class="text-xs text-slate-400 mt-1">' + status + '</div><div class="text-sm text-slate-300 mt-2 italic break-words">' + escapeHtml(bio) + '</div></div>';
         }
         const stat = (l, v) => '<div class="bg-slate-800 rounded-lg p-2"><div class="text-[10px] text-slate-400">' + l + '</div><div class="text-sm font-bold text-amber-300">' + v + '</div></div>';
         const inputCls = 'w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white';
@@ -499,7 +569,7 @@
             return { nick: s.nick, coins: s.coins, clicks: s.clicks, updatedAt: s.updatedAt, lastSeen: Date.now(),
                 cps: Math.floor(window.gameCps || 0), clickPower: window.gameClickPower || 1,
                 ups: (window.gameUpgradesState || []).reduce((a, u) => a + u.count, 0), drops: Object.values(l).reduce((a, b) => a + b, 0),
-                avatar: m.avatar || '🗿', nickFont: m.font || 'sans', nickColor: m.color || '#fbbf24', nickFx: m.fx || 'none', nickColor2: m.color2 || '#ec4899', banner: m.banner || '', frame: m.frame || 'none', bio: m.bio || '',
+                avatar: m.avatar || '🗿', nickFont: m.font || 'sans', nickColor: m.color || '#fbbf24', nickFx: m.fx || 'none', nickColor2: m.color2 || '#ec4899', banner: m.banner || '', banner2: m.banner2 || '#38bdf8', bstyle: m.bstyle || 'fade', title: m.title || '', frame: m.frame || 'none', bio: m.bio || '',
                 wins: m.wins || 0, losses: m.losses || 0, spins: m.spins || 0, jackpots: m.jackpots || 0, joined: m.joined || Date.now(),
                 bestKps: m.bestKps || 0, bestTime: m.bestTime || 0, img: m.img || '' };
         }
@@ -547,16 +617,19 @@
                 const sel = (id, opts, cur) => '<select id="' + id + '" class="' + inputCls + '">' + opts.map(o => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>';
                 title = '⚙️ Nastavení'; draft = newDraft();
                 B.innerHTML = '<div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Hra</div>' +
-                    '<div class="text-xs text-slate-400 mb-1">Vzhled stránky</div><div id="theme-pick" class="grid grid-cols-3 gap-2 mb-3"></div>' +
+                    '<div class="text-xs text-slate-400 mb-1">Vzhled stránky</div><div id="theme-pick" class="grid grid-cols-4 gap-2 mb-3"></div>' +
                     '<div class="text-xs text-slate-400 mb-1">Emoji na klikání</div><div id="emoji-pick" class="flex gap-2 mb-5"></div>' +
                     '<div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Profil</div><div id="prof-prev" class="mb-3"></div>' +
                     '<div class="text-xs text-slate-400 mb-1">Písmo jména (náhled s tvým jménem)</div><div id="font-grid" class="grid grid-cols-2 gap-2 mb-3 max-h-64 overflow-y-auto pr-1"></div>' +
                     '<div class="text-xs text-slate-400 mb-1">Efekt jména</div><div id="fx-chips" class="flex flex-wrap gap-1.5 mb-3"></div>' +
                     '<div class="grid grid-cols-3 gap-2 mb-3">' + colorIn('Barva jména', 'color') + colorIn('2. barva', 'color2') + colorIn('Pozadí profilu', 'banner') + '</div>' +
+                    '<div class="text-xs text-slate-400 mb-1">Styl pozadí profilu</div><div id="bstyle-chips" class="flex flex-wrap gap-1.5 mb-2"></div>' +
+                    '<div class="grid grid-cols-3 gap-2 mb-3">' + colorIn('2. barva pozadí' + (hasPerk(currentUser ? currentUser.uid : '', 'banner') ? '' : ' 🔒'), 'banner2') + '<label class="col-span-2 text-[10px] text-slate-400">Vlastní titulek' + (hasPerk(currentUser ? currentUser.uid : '', 'title') ? '' : ' 🔒 (jen s rolí)') +
+                    '<input maxlength="30" ' + (hasPerk(currentUser ? currentUser.uid : '', 'title') ? '' : 'disabled ') + 'value="' + escapeHtml(draft.title) + '" oninput="dset(\'title\',this.value.slice(0,30))" placeholder="např. Král gooningu" class="' + inputCls + ' mt-0.5 disabled:opacity-40"></label></div>' +
                     '<div class="text-xs text-slate-400 mb-1">Profilovka</div><div id="av-chips" class="flex flex-wrap gap-1.5 mb-2"></div>' +
                     '<div class="flex items-center gap-3 mb-3"><div id="img-prev"></div><div class="flex-1 space-y-1"><input id="set-img" type="file" accept="image/*" onchange="uploadAvatar(this)" class="w-full text-xs text-slate-300"><button onclick="removeAvatar()" class="text-xs bg-slate-700 px-2 py-1 rounded">Odebrat obrázek</button></div></div>' +
                     '<div class="text-xs text-slate-400 mb-1">Rámeček profilovky</div><div id="frame-chips" class="flex flex-wrap gap-1.5 mb-3"></div>' +
-                    '<div class="text-xs text-slate-400 mb-1">O mně</div><input id="set-bio" maxlength="60" value="' + escapeHtml(draft.bio) + '" oninput="dset(\'bio\',this.value.slice(0,60))" class="' + inputCls + '">' +
+                    '<div class="text-xs text-slate-400 mb-1">O mně <span class="text-slate-500">(' + (hasPerk(currentUser ? currentUser.uid : '', 'bio') ? '160' : '60 – delší popis jen s rolí') + ' znaků)</span></div><input id="set-bio" maxlength="' + (hasPerk(currentUser ? currentUser.uid : '', 'bio') ? 160 : 60) + '" value="' + escapeHtml(draft.bio) + '" oninput="dset(\'bio\',this.value)" class="' + inputCls + '">' +
                     '<button onclick="saveProfile()" class="mt-4 w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg">💾 Uložit profil</button>';
                 renderEmojiPick(); renderImgPrev(); renderThemePick(); renderDraftParts();
             } else if (name === 'admin') {
@@ -566,6 +639,7 @@
                     '<div class="text-sm font-bold text-amber-400 mt-5 mb-2">🎖 Role a boosty</div>' +
                     '<div class="bg-slate-800 rounded-xl p-3 space-y-2 text-xs"><div class="grid grid-cols-5 gap-2"><input id="rl-emoji" maxlength="4" placeholder="🔥" class="' + inputCls + ' col-span-1 text-center"><input id="rl-name" maxlength="20" placeholder="Název role" class="' + inputCls + ' col-span-3"><input id="rl-color" type="color" value="#fbbf24" class="h-full min-h-[2.25rem] w-full bg-slate-950 border border-slate-700 rounded-lg"></div>' +
                     '<div class="grid grid-cols-2 gap-2"><label class="text-slate-400">CPS boost ×<input id="rl-cps" type="number" step="0.1" min="0.1" max="1000" value="1.5" class="' + inputCls + '"></label><label class="text-slate-400">Klik boost ×<input id="rl-click" type="number" step="0.1" min="0.1" max="1000" value="1.5" class="' + inputCls + '"></label></div>' +
+                    '<div class="text-slate-400 mt-1">Výhody pro profil (co role odemyká):</div><div class="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">' + PERKS.map(k => '<label class="flex items-center gap-1.5"><input type="checkbox" id="rl-p-' + k[0] + '" checked> ' + k[1] + '</label>').join('') + '</div>' +
                     '<div class="flex gap-2"><button onclick="saveRole()" class="flex-1 bg-amber-500 text-slate-950 font-bold py-2 rounded-lg">💾 Uložit roli</button><button onclick="resetRoleForm()" class="bg-slate-700 px-3 rounded-lg">Nová</button></div></div><div id="role-list" class="space-y-2 mt-2"></div>' +
                     '<div class="text-sm font-bold text-red-400 mt-5 mb-2">👥 Všechny účty</div>' +
                     '<input id="adm-q" oninput="renderAdminPlayers()" placeholder="Hledat hráče…" class="' + inputCls + ' mb-2"><div id="admin-players" class="space-y-2"></div>';
@@ -593,45 +667,56 @@
             const el = $('emoji-pick'); if (!el) return;
             el.innerHTML = ['🍒', '🍑', '🍆'].map(e => '<button data-e="' + e + '" onclick="setClickEmoji(this.dataset.e)" class="text-4xl p-2 rounded-xl border-2 ' + (meta().emoji === e ? 'border-amber-400 bg-slate-800' : 'border-slate-700') + '">' + e + '</button>').join('');
         }
-        const THEMES = [['noc', 'Noc', 'linear-gradient(135deg,#0f172a,#a855f7,#fbbf24)'], ['neon', 'Neon', 'linear-gradient(135deg,#0f0828,#ec4899,#22d3ee)'], ['light', 'Světlý', 'linear-gradient(135deg,#ffffff,#e2e8f0,#d97706)']];
+        const THEMES = [['noc', 'Noc', 'linear-gradient(135deg,#0f172a,#a855f7,#fbbf24)'], ['neon', 'Neon', 'linear-gradient(135deg,#0f0828,#ec4899,#22d3ee)'], ['light', 'Světlý', 'linear-gradient(135deg,#ffffff,#e2e8f0,#d97706)'],
+            ['ocean', 'Oceán', 'linear-gradient(135deg,#030e1c,#2563eb,#2dd4bf)'], ['sunset', 'Západ slunce', 'linear-gradient(135deg,#140810,#e11d48,#fb923c)'], ['forest', 'Les', 'linear-gradient(135deg,#04100a,#16a34a,#facc15)'],
+            ['sakura', 'Sakura', 'linear-gradient(135deg,#fff5f8,#f9c8e0,#be185d)'], ['hacker', 'Hacker', 'linear-gradient(135deg,#000000,#14501a,#a3e635)']];
         function renderThemePick() {
             const el = $('theme-pick'); if (!el) return;
-            el.innerHTML = THEMES.map(t => '<button data-t="' + t[0] + '" onclick="setTheme(this.dataset.t)" class="rounded-xl border-2 p-2 text-xs font-bold ' + (meta().theme === t[0] ? 'border-amber-400' : 'border-slate-700') + '"><div class="h-8 rounded-lg mb-1" style="background:' + t[2] + '"></div>' + t[1] + '</button>').join('');
+            el.innerHTML = THEMES.map(t => '<button data-t="' + t[0] + '" onclick="setTheme(this.dataset.t)" class="rounded-xl border-2 p-1.5 text-[10px] font-bold leading-tight ' + (meta().theme === t[0] ? 'border-amber-400' : 'border-slate-700') + '"><div class="h-8 rounded-lg mb-1" style="background:' + t[2] + '"></div>' + t[1] + '</button>').join('');
         }
         window.setTheme = (t) => { window.applyTheme(t); renderThemePick(); window.saveGameProgress(false); };
         window.setClickEmoji = (e) => { meta().emoji = e; window.applyEmoji(); renderEmojiPick(); window.saveGameProgress(false); };
 // --- koncept profilu (úpravy se hned ukazují v náhledu, uloží se až tlačítkem) ---
         function newDraft() {
             const m = meta();
-            return { avatar: m.avatar || '🗿', font: m.font || 'sans', fx: m.fx || 'none', color: m.color || '#fbbf24', color2: m.color2 || '#ec4899', banner: m.banner || '#a855f7', frame: m.frame || 'none', bio: m.bio || '' };
+            return { avatar: m.avatar || '🗿', font: m.font || 'sans', fx: m.fx || 'none', color: m.color || '#fbbf24', color2: m.color2 || '#ec4899', banner: m.banner || '#a855f7', banner2: m.banner2 || '#38bdf8', bstyle: m.bstyle || 'fade', title: m.title || '', frame: m.frame || 'none', bio: m.bio || '' };
         }
         function colorIn(label, key) {
             return '<label class="text-[10px] text-slate-400">' + label + '<input type="color" value="' + okColor(draft[key], '#ffffff') + '" oninput="dset(\'' + key + '\',this.value)" class="w-full h-9 mt-0.5 bg-slate-950 border border-slate-700 rounded-lg"></label>';
         }
         function chips(key, items, cur) {
-            return items.map(i => '<button data-g="' + key + '" data-k="' + escapeHtml(i[0]) + '" onclick="dset(this.dataset.g,this.dataset.k)" class="px-2.5 py-1 rounded-full border text-xs font-bold ' +
-                (cur === i[0] ? 'border-amber-400 bg-slate-800 text-amber-300' : 'border-slate-700 text-slate-300') + '">' + escapeHtml(i[1]) + '</button>').join('');
+            return items.map(i => { const lk = isLocked(key, i[0]);
+                return '<button data-g="' + key + '" data-k="' + escapeHtml(i[0]) + '" onclick="dset(this.dataset.g,this.dataset.k)" class="px-2.5 py-1 rounded-full border text-xs font-bold ' +
+                    (cur === i[0] ? 'border-amber-400 bg-slate-800 text-amber-300' : 'border-slate-700 text-slate-300') + (lk ? ' opacity-50' : '') + '">' + (lk ? '🔒 ' : '') + escapeHtml(i[1]) + '</button>'; }).join('');
         }
         function draftProfile() {
             const d = draft;
-            return Object.assign(pubProfile(buildState()), { id: currentUser ? currentUser.uid : '', avatar: d.avatar, nickFont: d.font, nickFx: d.fx, nickColor: d.color, nickColor2: d.color2, banner: d.banner, frame: d.frame, bio: d.bio, img: meta().img || '' });
+            return Object.assign(pubProfile(buildState()), { id: currentUser ? currentUser.uid : '', avatar: d.avatar, nickFont: d.font, nickFx: d.fx, nickColor: d.color, nickColor2: d.color2, banner: d.banner, banner2: d.banner2, bstyle: d.bstyle, title: d.title, frame: d.frame, bio: d.bio, img: meta().img || '' });
         }
         function renderDraftParts() {
             if (!draft) return;
             const prev = $('prof-prev'); if (prev) prev.innerHTML = profileHead(draftProfile(), 'Náhled profilu');
             const nick = escapeHtml(($('player-nick').value.trim()) || 'Ukázka');
             const fg = $('font-grid');
-            if (fg) fg.innerHTML = Object.keys(FONTS).map(k => '<button data-g="font" data-k="' + k + '" onclick="dset(this.dataset.g,this.dataset.k)" class="rounded-lg border-2 px-2 py-1.5 text-left ' + (draft.font === k ? 'border-amber-400 bg-slate-800' : 'border-slate-700') + '">' +
-                '<div class="text-[9px] text-slate-500 leading-none mb-1">' + FONT_NAMES[k] + '</div><div class="truncate text-base leading-tight" style="font-family:' + FONTS[k].replace(/"/g, "'") + ';color:' + okColor(draft.color, '#fbbf24') + '">' + nick + '</div></button>').join('');
+            if (fg) fg.innerHTML = Object.keys(FONTS).map(k => '<button data-g="font" data-k="' + k + '" onclick="dset(this.dataset.g,this.dataset.k)" class="rounded-lg border-2 px-2 py-1.5 text-left ' + (draft.font === k ? 'border-amber-400 bg-slate-800' : 'border-slate-700') + (isLocked('font', k) ? ' opacity-50' : '') + '">' +
+                '<div class="text-[9px] text-slate-500 leading-none mb-1">' + (isLocked('font', k) ? '🔒 ' : '') + FONT_NAMES[k] + '</div><div class="truncate text-base leading-tight" style="font-family:' + FONTS[k].replace(/"/g, "'") + ';color:' + okColor(draft.color, '#fbbf24') + '">' + nick + '</div></button>').join('');
             const fx = $('fx-chips'); if (fx) fx.innerHTML = chips('fx', FX, draft.fx);
             const ac = $('av-chips'); if (ac) ac.innerHTML = chips('avatar', AVATARS.map(a => [a, a]), draft.avatar);
             const fc = $('frame-chips'); if (fc) fc.innerHTML = chips('frame', Object.keys(FRAMES).map(k => [k, FRAME_NAMES[k]]), draft.frame);
+            const bc = $('bstyle-chips'); if (bc) bc.innerHTML = chips('bstyle', BSTYLES, draft.bstyle);
         }
-        window.dset = (k, v) => { if (!draft) return; draft[k] = v; renderDraftParts(); };
+        window.dset = (k, v) => {
+            if (!draft) return;
+            if (isLocked(k, v)) { toast('🔒 Tohle odemyká jen role s touto výhodou.', 2500); return; }
+            draft[k] = v; renderDraftParts();
+        };
         window.saveProfile = () => {
             if (!draft) return;
             const m = meta(), d = draft;
-            m.avatar = d.avatar; m.font = d.font; m.fx = d.fx; m.color = d.color; m.color2 = d.color2; m.banner = d.banner; m.frame = d.frame; m.bio = String(d.bio || '').trim().slice(0, 60);
+            m.avatar = d.avatar; m.font = d.font; m.fx = d.fx; m.color = d.color; m.color2 = d.color2; m.banner = d.banner; m.banner2 = d.banner2; m.bstyle = d.bstyle; m.frame = d.frame;
+            const uid = currentUser ? currentUser.uid : '';
+            m.title = hasPerk(uid, 'title') ? String(d.title || '').trim().slice(0, 30) : '';
+            m.bio = String(d.bio || '').trim().slice(0, hasPerk(uid, 'bio') ? 160 : 60);
             window.saveGameProgress(false); toast('✅ Profil uložen', 2000);
         };
 
@@ -960,16 +1045,17 @@ window.renderAdminPlayers = () => {
             el.innerHTML = ids.length ? ids.map(id => {
                 const r = rolesMap[id], members = Object.keys(userRoles).filter(u => userRoles[u] === id).length;
                 return '<div class="flex items-center justify-between gap-2 bg-slate-800 rounded-lg px-3 py-2"><div class="min-w-0"><div class="text-sm">' + roleBadge2(r) + '</div>' +
-                    '<div class="text-[10px] text-slate-400">CPS ×' + clampMult(r.cpsMult) + ' · klik ×' + clampMult(r.clickMult) + ' · členů: ' + members + '</div></div><div class="flex shrink-0 gap-1">' +
+                    '<div class="text-[10px] text-slate-400">CPS ×' + clampMult(r.cpsMult) + ' · klik ×' + clampMult(r.clickMult) + ' · členů: ' + members + '</div><div class="text-[10px] text-slate-500">' + (PERKS.filter(k => r.perks && r.perks[k[0]]).map(k => k[1].split(' ')[0]).join(' ') || 'bez výhod profilu') + '</div></div><div class="flex shrink-0 gap-1">' +
                     '<button data-id="' + escapeHtml(id) + '" onclick="editRole(this.dataset.id)" class="bg-slate-600 px-2 py-1 rounded text-xs">✏️</button>' +
                     '<button data-id="' + escapeHtml(id) + '" onclick="deleteRole(this.dataset.id)" class="bg-red-700 px-2 py-1 rounded text-xs">🗑</button></div></div>';
             }).join('') : '<div class="text-xs text-slate-500">Zatím žádné role. Vytvoř první nahoře.</div>';
         };
         function roleBadge2(r) { const c = okColor(r.color, '#fbbf24'); return '<span class="role-badge" style="color:' + c + ';border-color:' + c + ';font-size:.75rem;padding:.1rem .6rem">' + escapeHtml(((r.emoji || '') + ' ' + (r.name || '')).trim()) + '</span>'; }
-        window.resetRoleForm = () => { editRoleId = null; $('rl-emoji').value = ''; $('rl-name').value = ''; $('rl-color').value = '#fbbf24'; $('rl-cps').value = '1.5'; $('rl-click').value = '1.5'; };
+        window.resetRoleForm = () => { editRoleId = null; $('rl-emoji').value = ''; $('rl-name').value = ''; $('rl-color').value = '#fbbf24'; $('rl-cps').value = '1.5'; $('rl-click').value = '1.5'; PERKS.forEach(k => { $('rl-p-' + k[0]).checked = true; }); };
         window.editRole = (id) => {
             const r = rolesMap[id]; if (!r) return; editRoleId = id;
             $('rl-emoji').value = r.emoji || ''; $('rl-name').value = r.name || ''; $('rl-color').value = okColor(r.color, '#fbbf24'); $('rl-cps').value = clampMult(r.cpsMult); $('rl-click').value = clampMult(r.clickMult);
+            PERKS.forEach(k => { $('rl-p-' + k[0]).checked = !!(r.perks && r.perks[k[0]]); });
         };
         window.saveRole = async () => {
             if (!isAdmin()) return;
@@ -977,7 +1063,7 @@ window.renderAdminPlayers = () => {
             if (!name) { toast('Zadej název role.', 2500); return; }
             const id = editRoleId || 'r' + Date.now().toString(36);
             try {
-                await setDoc(doc(col('roles'), id), { name: name, emoji: $('rl-emoji').value.trim().slice(0, 4), color: okColor($('rl-color').value, '#fbbf24'), cpsMult: clampMult($('rl-cps').value), clickMult: clampMult($('rl-click').value), updatedAt: Date.now() });
+                await setDoc(doc(col('roles'), id), { name: name, emoji: $('rl-emoji').value.trim().slice(0, 4), color: okColor($('rl-color').value, '#fbbf24'), cpsMult: clampMult($('rl-cps').value), clickMult: clampMult($('rl-click').value), perks: Object.fromEntries(PERKS.map(k => [k[0], !!$('rl-p-' + k[0]).checked])), updatedAt: Date.now() });
                 window.resetRoleForm(); toast('✅ Role uložena', 2500);
             } catch (e) { toast('Roli se nepodařilo uložit (' + e.code + ')', 5000); }
         };
@@ -1066,7 +1152,7 @@ window.renderAdminPlayers = () => {
 
     <!-- HERNÍ LOGIKA -->
     <script>
-        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":100000000,"cps":100000,"clickPower":10000},{"name":"Úmělá vagína","price":10000000000,"cps":1000000,"clickPower":200000},{"name":"Umělé sperma","price":30000000000,"cps":3000000,"clickPower":300000}]};
+        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":100000000,"cps":100000,"clickPower":10000},{"name":"Úmělá vagína","price":10000000000,"cps":1000000,"clickPower":200000},{"name":"Umělé sperma","price":30000000000,"cps":3000000,"clickPower":300000},{"name":"Vibrační vajíčko","price":300000,"cps":5900,"clickPower":390},{"name":"Anální kuličky","price":800000,"cps":6800,"clickPower":450},{"name":"Pumpička na penis","price":2000000,"cps":7900,"clickPower":530},{"name":"Nafukovací panna","price":5000000,"cps":9000,"clickPower":600},{"name":"Masážní hlavice Hitachi","price":50000000,"cps":50000,"clickPower":3300},{"name":"Latexový oblek","price":200000000,"cps":140000,"clickPower":9300},{"name":"Erotická houpačka","price":500000000,"cps":220000,"clickPower":15000},{"name":"Sada na BDSM","price":1000000000,"cps":320000,"clickPower":21000},{"name":"Erotická lavice","price":3000000000,"cps":550000,"clickPower":37000},{"name":"Rotační masturbátor 3000","price":6000000000,"cps":770000,"clickPower":51000},{"name":"VR headset s haptickým oblekem","price":15000000000,"cps":1500000,"clickPower":100000},{"name":"Robotická společnice","price":20000000000,"cps":2000000,"clickPower":130000},{"name":"Továrna na lubrikant","price":60000000000,"cps":6000000,"clickPower":400000},{"name":"Franšíza sexshopů","price":100000000000,"cps":10000000,"clickPower":670000},{"name":"Orgasmická elektrárna","price":300000000000,"cps":30000000,"clickPower":2000000},{"name":"Kosmická loď lásky","price":1000000000000,"cps":100000000,"clickPower":6700000},{"name":"Gooningová dimenze","price":5000000000000,"cps":500000000,"clickPower":33000000},{"name":"Bůh gooningu","price":20000000000000,"cps":2000000000,"clickPower":130000000}]};
 
         // ===== LIMITOVANÉ DROPY =====
         // Každých intervalMin minut se objeví drop a je k dispozici durationSec sekund.
@@ -1179,7 +1265,7 @@ window.renderAdminPlayers = () => {
         }
         window.applyEmoji = applyEmoji;
         function applyTheme(t) {
-            if (['noc', 'neon', 'light'].indexOf(t) < 0) t = 'noc';
+            if (['noc', 'neon', 'light', 'ocean', 'sunset', 'forest', 'sakura', 'hacker'].indexOf(t) < 0) t = 'noc';
             meta.theme = t; document.documentElement.dataset.theme = t;
             try { localStorage.setItem('goon_theme', t); } catch (e) {}
         }
@@ -1211,7 +1297,8 @@ window.renderAdminPlayers = () => {
 
         function renderShop() {
             shopUI.innerHTML = '';
-            upgrades.forEach((u, i) => {
+            upgrades.map((u, i) => i).sort((a, b) => upgrades[a].basePrice - upgrades[b].basePrice).forEach((i) => {
+                const u = upgrades[i];
                 const btn = document.createElement('button');
                 btn.className = 'w-full bg-slate-800 hover:bg-slate-700/80 disabled:opacity-40 disabled:hover:bg-slate-800 p-3.5 rounded-xl border border-slate-700/80 text-left transition flex items-center justify-between group cursor-pointer';
                 btn.id = 'upg-btn-' + i;
