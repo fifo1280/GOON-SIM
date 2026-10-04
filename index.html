@@ -9,7 +9,7 @@
         // Zástupné funkce: kliknutí během načítání se zapamatuje a provede, jakmile je hra připravená.
         (function () {
             var q = []; window.__q = q;
-            ['openModal','closeModal','openProfile','spinWheel','toggleAutoSpin','setTheme','setClickEmoji','saveProfile','uploadAvatar','removeAvatar','adminAct','challenge','sendCoins','duelClick','closeDuel'].forEach(function (n) {
+            ['openModal','azcloseModal','openProfile','spinWheel','toggleAutoSpin','setTheme','setClickEmoji','saveProfile','uploadAvatar','removeAvatar','adminAct','challenge','sendCoins','duelClick','closeDuel'].forEach(function (n) {
                 window[n] = function () { q.push([n, [].slice.call(arguments)]); var b = document.getElementById('status-indicator'); if (b) b.textContent = '⏳ Načítám hru…'; };
             });
         })();
@@ -79,6 +79,26 @@
             --a3:159 18 57; --a4:190 24 93; --a5:236 72 153; --a6:219 39 119; --a9:253 242 248;
             --p3:109 40 217; --p4:126 34 206; --p5:168 85 247; --p6:147 51 234; --p9:243 232 255;
         }
+        :root[data-theme="sakura-dark"] {
+            --bg:18 6 14; --c1:34 12 26; --c2:56 20 44; --b1:108 44 84; --b2:150 70 115; --t5:170 120 146; --t4:205 150 180; --t3:238 196 216; --t1:255 238 246;
+            --a3:255 192 220; --a4:251 150 196; --a5:244 114 182; --a6:219 39 119; --a9:76 10 40;
+            --p3:255 210 228; --p4:249 168 212; --p5:236 120 180; --p6:219 70 140; --p9:80 15 50;
+        }
+        :root[data-theme="sakura-dark"] #main-click-btn { filter: drop-shadow(0 0 26px rgb(var(--a5) / .65)); }
+        :root[data-theme="sakura-dark"] h1 { text-shadow: 0 0 16px rgb(var(--a5) / .45); }
+        #petals { position: fixed; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
+        #petals span { position: absolute; top: -30px; animation: petalFall linear infinite; filter: drop-shadow(0 0 4px rgba(255,150,200,.5)); }
+        @keyframes petalFall { 0% { transform: translate(0,-30px) rotate(0deg); } 50% { transform: translate(45px,52vh) rotate(200deg); } 100% { transform: translate(-25px,108vh) rotate(380deg); } }
+        @media (prefers-reduced-motion: reduce) { #petals { display: none; } }
+        .wheel-wrap { position: relative; width: 270px; max-width: 80vw; margin: .25rem auto .5rem; }
+        .wheel-wrap svg { width: 100%; height: auto; display: block; overflow: visible; }
+        #wheel-g { transform-origin: 100px 100px; }
+        .pbar { height: .5rem; background: rgb(var(--c2)); border-radius: 9999px; overflow: hidden; }
+        .pbar > div { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, rgb(var(--p5)), rgb(var(--a4))); transition: width .3s; }
+        .ctab { flex: 1; padding: .45rem .25rem; font-size: .7rem; font-weight: 800; border-radius: .6rem; border: 1px solid rgb(var(--b1)); background: rgb(var(--c2) / .6); color: rgb(var(--t3)); }
+        .ctab.on { border-color: rgb(var(--a4)); background: rgb(var(--a9)); color: rgb(var(--a3)); }
+        .cbtn { padding: .6rem .5rem; border-radius: .7rem; font-weight: 800; font-size: .8rem; color: #fff; transition: transform .1s, filter .1s; }
+        .cbtn:active { transform: scale(.96); } .cbtn:disabled { opacity: .4; }
         :root[data-theme="light"] {
             --bg:244 246 251; --c1:255 255 255; --c2:226 232 240; --b1:203 213 225; --b2:148 163 184; --t5:120 133 154; --t4:90 104 128; --t3:55 68 92; --t1:15 23 42;
             --a3:161 98 7; --a4:180 83 9; --a5:245 158 11; --a6:217 119 6; --a9:254 243 199;
@@ -151,6 +171,8 @@
     <nav id="main-nav" class="fixed bottom-0 inset-x-0 z-40 flex bg-slate-900/95 border-t border-slate-800 backdrop-blur lg:border-t-0">
         <button class="nav-btn" style="--acc:#ef4444" onclick="openModal('duel')"><span class="ico">⚔️</span><span>Souboj</span></button>
         <button class="nav-btn" style="--acc:#a855f7" onclick="openModal('wheel')"><span class="ico">🎡</span><span>Kolo štěstí</span></button>
+        <button class="nav-btn" style="--acc:#f472b6" onclick="openModal('shop')"><span class="ico">🏪</span><span>Sex shop</span></button>
+        <button class="nav-btn" style="--acc:#22c55e" onclick="openModal('casino')"><span class="ico">🎰</span><span>Kasino</span></button>
         <button class="nav-btn" style="--acc:#38bdf8" onclick="openModal('profiles')"><span class="ico">👤</span><span>Profily</span></button>
         <button class="nav-btn" style="--acc:#94a3b8" onclick="openModal('settings')"><span class="ico">⚙️</span><span>Nastavení</span></button>
         <button id="admin-btn" class="nav-btn admin hidden" style="--acc:#f59e0b" onclick="openModal('admin')"><span class="ico">🛡️</span><span>Admin</span></button>
@@ -595,7 +617,7 @@
                 return '<div data-u="' + p.id + '" onclick="openProfile(this.dataset.u)" class="relative cursor-pointer rounded-lg px-2 py-1.5 overflow-hidden transition hover:bg-slate-800 ' + (isMe ? 'ring-1 ring-amber-400/70 bg-slate-800/70' : '') + '">' +
                     '<div class="absolute inset-y-0 left-0 opacity-25" style="width:' + pct + '%;background:linear-gradient(90deg,rgb(var(--p5)),transparent)"></div>' +
                     '<div class="relative flex items-center gap-2 text-xs"><span class="w-6 text-center font-black text-slate-400 shrink-0">' + (idx + 1) + '</span>' +
-                    '<span class="flex-1 min-w-0 truncate">' + dot(p) + nm(p, 18) + '</span>' +
+                    '<span class="flex-1 min-w-0 truncate">' + dot(p) + nm(p, 18) + (p.shop ? ' <span title="Vlastní Sex shop">🏪</span>' : '') + '</span>' +
                     '<span class="font-mono font-bold text-amber-400 shrink-0">' + window.abbr(p.coins || 0) + '</span></div></div>';
             };
             html += players.slice(3).map((p, i) => row(p, i + 3)).join('');
@@ -723,15 +745,17 @@
                 ups: (window.gameUpgradesState || []).reduce((a, u) => a + u.count, 0), drops: Object.values(l).reduce((a, b) => a + b, 0),
                 avatar: m.avatar || '🗿', nickFont: m.font || 'sans', nickColor: m.color || '#fbbf24', nickFx: m.fx || 'none', nickColor2: m.color2 || '#ec4899', banner: m.banner || '', banner2: m.banner2 || '#38bdf8', bstyle: m.bstyle || 'fade', title: m.title || '', frame: m.frame || 'none', bio: m.bio || '',
                 wins: m.wins || 0, losses: m.losses || 0, spins: m.spins || 0, jackpots: m.jackpots || 0, joined: m.joined || Date.now(),
-                bestKps: m.bestKps || 0, bestTime: m.bestTime || 0, img: m.img || '' };
+                bestKps: m.bestKps || 0, bestTime: m.bestTime || 0, img: m.img || '',
+                shop: m.shop && m.shop.on ? 1 : 0, shopEarned: Math.floor((m.shop && m.shop.earned) || 0), gNet: Math.floor(((m.gamble || {}).won || 0) - ((m.gamble || {}).lost || 0)) };
         }
 
         // ---------- MODALY ----------
-        window.closeModal = () => { modalName = null; $('modal').classList.add('hidden'); };
+        window.closeModal = () => { if (ladder) window.ladderCash(true); modalName = null; $('modal').classList.add('hidden'); };
         window.openProfile = (uid) => openModal('profile', uid);
         window.onPlayers = () => { if (modalName === 'duel') renderDuelList(); if (modalName === 'profiles') renderProfList(); if (modalName === 'admin') renderAdminPlayers(); };
 
         window.openModal = (name, arg) => {
+            if (ladder && name !== 'casino') window.ladderCash(true);
             modalName = name;
             const B = $('modal-body'); let title = '';
             if (name === 'duel') {
@@ -751,19 +775,28 @@
                 B.innerHTML = profileHead(p, (isOnline(p) || me ? '🟢 Online' : '⚫ Naposledy ' + new Date(p.lastSeen || 0).toLocaleString('cs-CZ'))) +
                     
                     '<div class="grid grid-cols-2 gap-2">' + stat('Goon Coins', n0(p.coins)) + stat('Naklikáno', n0(p.clicks)) + stat('CPS', n0(p.cps)) + stat('Síla kliku', n0(p.clickPower)) +
-                    stat('Upgradů', n0(p.ups)) + stat('Limitovek', n0(p.drops)) + stat('Souboje V / P', (p.wins || 0) + ' / ' + (p.losses || 0)) + stat('Kolo: výhry / točení', (p.jackpots || 0) + ' / ' + (p.spins || 0)) + stat('Rekord kliků/s', n0(p.bestKps)) + stat('Nejrychlejší výhra', p.bestTime ? Number(p.bestTime).toFixed(1) + ' s' : '–') + '</div>' +
+                    stat('Upgradů', n0(p.ups)) + stat('Limitovek', n0(p.drops)) + stat('Souboje V / P', (p.wins || 0) + ' / ' + (p.losses || 0)) + stat('Kolo: výhry / točení', (p.jackpots || 0) + ' / ' + (p.spins || 0)) + stat('Rekord kliků/s', n0(p.bestKps)) + stat('Nejrychlejší výhra', p.bestTime ? Number(p.bestTime).toFixed(1) + ' s' : '–') + stat('🏪 Sex shop', p.shop ? 'vydělal ' + window.abbr(p.shopEarned || 0) : '–') + stat('🎰 Kasino (čistě)', (p.gNet > 0 ? '+' : '') + window.abbr(p.gNet || 0)) + '</div>' +
                     '<div class="text-[10px] text-slate-500 mt-2 text-center">Ve hře od ' + new Date(p.joined || 0).toLocaleDateString('cs-CZ') + '</div>' +
                     (me ? '<button onclick="openModal(\'settings\')" class="mt-3 w-full bg-slate-700 py-2 rounded-lg text-sm">✏️ Upravit profil</button>'
                         : sendHTML(p) + (isOnline(p) ? '<button data-u="' + p.id + '" onclick="openModal(\'duel\')" class="mt-3 w-full bg-red-600 py-2 rounded-lg text-sm font-bold">⚔️ Vyzvat na souboj</button>' : ''));
             } else if (name === 'wheel') {
-                const W = window.WHEEL, tot = W.prizes.reduce((a, x) => a + x.w, 0);
-                const label = (x) => x.t === 'nothing' ? 'Nic' : x.t === 'coins' ? Math.round(x.frac * 100) + ' % ceny zpět' : '🏆 ' + window.limitedDrops.find(d => d.id === x.id).name;
+                const W = window.WHEEL, m = meta();
                 title = '🎡 Kolo štěstí';
-                B.innerHTML = '<div class="text-xs text-slate-400 mb-2">Cena za zatočení: <b class="text-amber-400">' + n0(W.cost) + '</b> – většinou nic, ale můžeš vyhrát limitovaný upgrade!</div>' +
-                    '<div id="wheel-disp" class="text-7xl text-center my-3">🎡</div><div id="wheel-msg" class="text-center text-sm min-h-[1.5rem] mb-2"></div>' +
-                    '<button onclick="spinWheel()" class="w-full bg-purple-600 hover:bg-purple-500 py-2.5 rounded-lg font-bold">Zatočit (' + n0(W.cost) + ')</button>' +
-                    '<div class="flex items-center gap-2 mt-2"><button id="auto-btn" onclick="toggleAutoSpin()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-sm font-bold">🔁 Auto spin</button><label class="text-xs flex items-center gap-1 whitespace-nowrap"><input id="auto-stop" type="checkbox" checked> stop po výhře</label></div>' +
-                    '<div class="mt-3 text-[11px] text-slate-400 space-y-0.5">' + W.prizes.map(x => '<div class="flex justify-between"><span>' + label(x) + '</span><span>' + (x.w / tot * 100).toFixed(1) + ' %</span></div>').join('') + '</div>';
+                const tot = Object.values(WT).reduce((a, x) => a + x.w, 0);
+                const opNames = window.limitedDrops.filter(d => d.op && d.wheel !== false).map(d => d.emoji + ' ' + d.name).join(', ');
+                B.innerHTML = '<div class="text-xs text-slate-400 mb-2">Cena zatočení: <b class="text-amber-400">' + n0(W.cost) + '</b>. Vyhraj coiny zpět, boost, zdarma zatočení nebo limitovaný upgrade. Po ' + (W.pityMax - 1) + ' zatočeních bez limitky je další <b class="text-slate-200">jistá</b>.</div>' +
+                    '<div class="flex items-center gap-3 mb-2"><div class="flex-1"><div class="flex justify-between text-[10px] text-slate-400 mb-0.5"><span>Jistota limitky</span><span id="wheel-pity-t"></span></div><div class="pbar"><div id="wheel-pity" style="width:0"></div></div></div><div class="chip" title="Zatočení zdarma">🎟️ <span id="wheel-free">0</span></div></div>' +
+                    '<div class="wheel-wrap">' + wheelSVG() + '</div><div id="wheel-msg" class="text-center text-sm min-h-[1.5rem] mb-2 font-bold"></div>' +
+                    '<button onclick="spinWheel()" class="w-full bg-purple-600 hover:bg-purple-500 py-2.5 rounded-lg font-bold">Zatočit</button>' +
+                    '<div class="flex items-center gap-2 mt-2"><button id="auto-btn" onclick="toggleAutoSpin()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-sm font-bold">🔁 Auto spin</button><label class="text-xs flex items-center gap-1 whitespace-nowrap"><input id="auto-stop" type="checkbox" checked> stop po limitce</label></div>' +
+                    '<div id="wheel-hist" class="flex flex-wrap gap-1 mt-3 min-h-[1.5rem]"></div>' +
+                    '<div class="mt-3 text-[11px] text-slate-400 space-y-0.5">' + Object.keys(WT).map(k => '<div class="flex justify-between"><span>' + WT[k].e + ' ' + WT[k].n + '</span><span>' + (WT[k].w / tot * 100).toFixed(1) + ' %</span></div>').join('') + '</div>' +
+                    '<div class="text-[10px] text-slate-500 mt-2">🔥 OP limitky v kole: ' + opNames + '</div>';
+                wheelInfo();
+            } else if (name === 'shop') {
+                title = '🏪 Sex shop'; B.innerHTML = window.shopHTML ? window.shopHTML() : ''; if (window.shopLive) window.shopLive();
+            } else if (name === 'casino') {
+                title = '🎰 Kasino'; B.innerHTML = casinoHTML(); casinoGame();
             } else if (name === 'recovery') {
                 title = '🛟 Záchrana dat';
                 B.innerHTML = '<div class="text-xs text-slate-400 mb-3">Hra si automaticky ukládá zálohy: <b>nejlepší postup</b> a <b>24 hodinových záloh</b> v cloudu a poslední i nejlepší stav v tomto zařízení. Tady je můžeš najít a vrátit.</div>' +
@@ -828,7 +861,7 @@
         }
         const THEMES = [['noc', 'Noc', 'linear-gradient(135deg,#0f172a,#a855f7,#fbbf24)'], ['neon', 'Neon', 'linear-gradient(135deg,#0f0828,#ec4899,#22d3ee)'], ['light', 'Světlý', 'linear-gradient(135deg,#ffffff,#e2e8f0,#d97706)'],
             ['ocean', 'Oceán', 'linear-gradient(135deg,#030e1c,#2563eb,#2dd4bf)'], ['sunset', 'Západ slunce', 'linear-gradient(135deg,#140810,#e11d48,#fb923c)'], ['forest', 'Les', 'linear-gradient(135deg,#04100a,#16a34a,#facc15)'],
-            ['sakura', 'Sakura', 'linear-gradient(135deg,#fff5f8,#f9c8e0,#be185d)'], ['hacker', 'Hacker', 'linear-gradient(135deg,#000000,#14501a,#a3e635)']];
+            ['sakura', 'Sakura', 'linear-gradient(135deg,#fff5f8,#f9c8e0,#be185d)'], ['sakura-dark', 'Sakura Noc', 'linear-gradient(135deg,#14060f,#ec4899,#ffb7d5)'], ['hacker', 'Hacker', 'linear-gradient(135deg,#000000,#14501a,#a3e635)']];
         function renderThemePick() {
             const el = $('theme-pick'); if (!el) return;
             el.innerHTML = THEMES.map(t => '<button data-t="' + t[0] + '" onclick="setTheme(this.dataset.t)" class="rounded-xl border-2 p-1.5 text-[10px] font-bold leading-tight ' + (meta().theme === t[0] ? 'border-amber-400' : 'border-slate-700') + '"><div class="h-8 rounded-lg mb-1" style="background:' + t[2] + '"></div>' + t[1] + '</button>').join('');
@@ -905,22 +938,142 @@
         window.removeAvatar = () => { meta().img = ''; renderImgPrev(); window.saveGameProgress(false); };
 
         // ---------- KOLO ŠTĚSTÍ ----------
-        window.spinWheel = async (fast) => {
-            const W = window.WHEEL;
-            if (spinning) return 'busy';
-            if (api().score() < W.cost) { toast('Nemáš dost coinů.', 2500); return 'broke'; }
-            spinning = true; api().addCoins(-W.cost); meta().spins = (meta().spins || 0) + 1;
-            const disp = $('wheel-disp'), faces = ['🎡', '💨', '🪙', '✨', '💎', '🍆', '🍑', '🍒']; let i = 0;
-            const iv = setInterval(() => { if (disp) disp.textContent = faces[i++ % faces.length]; }, 90);
-            await new Promise(r => setTimeout(r, fast ? 600 : 1800)); clearInterval(iv);
-            const tot = W.prizes.reduce((a, x) => a + x.w, 0); let r = Math.random() * tot, pr = W.prizes[0];
-            for (const x of W.prizes) { if ((r -= x.w) < 0) { pr = x; break; } }
-            let face = '💨', msg = 'Nic… zkus štěstí znovu.';
-            if (pr.t === 'drop') { const d = window.limitedDrops.find(x => x.id === pr.id); api().giveDrop(pr.id); meta().jackpots = (meta().jackpots || 0) + 1; face = d.emoji; msg = '🎉 JACKPOT! Vyhrál jsi ' + d.name + '!'; window.triggerExplosion({ text: '🎉 JACKPOT!', color: '#fbbf24' }, 120); }
-            else if (pr.t === 'coins') { const back = Math.floor(W.cost * pr.frac); api().addCoins(back); face = '🪙'; msg = 'Vyhrál jsi ' + n0(back) + ' coinů zpět.'; }
-            if ($('wheel-disp')) { $('wheel-disp').textContent = face; $('wheel-msg').textContent = msg; }
-            spinning = false; window.saveGameProgress(false); return pr.t;
+        function rnd() { try { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] / 4294967296; } catch (e) { return Math.random(); } }
+        const WSL = ['nothing', 'back50', 'nothing', 'boost', 'nothing', 'back150', 'nothing', 'drop', 'nothing', 'free', 'back50', 'nothing', 'back500', 'nothing', 'op', 'nothing'];
+        // w = šance (v %), frac = násobek ceny zatočení, který se vrátí
+        const WT = {
+            nothing: { n: 'Nic', e: '💨', c: '#334155', w: 44 }, back50: { n: '50 % ceny zpět', e: '🪙', c: '#0ea5e9', w: 20, frac: 0.5 },
+            back150: { n: '150 % ceny zpět', e: '💰', c: '#16a34a', w: 8, frac: 1.5 }, back500: { n: '500 % ceny zpět', e: '💎', c: '#9333ea', w: 2.5, frac: 5 },
+            free: { n: 'Zatočení zdarma', e: '🎟️', c: '#d97706', w: 8 }, boost: { n: 'Boost ×2 na 2 min', e: '⚡', c: '#db2777', w: 6 },
+            drop: { n: 'Limitovaný upgrade', e: '🎁', c: '#dc2626', w: 10 }, op: { n: 'OP limitka', e: '🔥', c: '#ea580c', w: 1.5 }
         };
+        let wheelRot = 0, wheelHist = [];
+        function wheelSVG() {
+            const N = WSL.length, step = 360 / N, R = 92, C = 100, pt = (a, r) => (C + r * Math.sin(a * Math.PI / 180)).toFixed(2) + ',' + (C - r * Math.cos(a * Math.PI / 180)).toFixed(2);
+            let s = '<svg viewBox="0 -12 200 212"><g id="wheel-g" style="transform:rotate(' + wheelRot + 'deg)">';
+            WSL.forEach((k, i) => {
+                const a0 = i * step, a1 = (i + 1) * step, mid = a0 + step / 2, t = WT[k], p = pt(mid, 66).split(',');
+                s += '<path d="M' + C + ',' + C + ' L' + pt(a0, R) + ' A' + R + ',' + R + ' 0 0 1 ' + pt(a1, R) + ' Z" fill="' + t.c + '" stroke="#0f172a" stroke-width="1.2"/>' +
+                    '<text x="' + p[0] + '" y="' + p[1] + '" font-size="15" text-anchor="middle" dominant-baseline="central" transform="rotate(' + mid + ' ' + p[0] + ' ' + p[1] + ')">' + t.e + '</text>';
+            });
+            s += '<circle cx="' + C + '" cy="' + C + '" r="94" fill="none" stroke="#fbbf24" stroke-width="3"/></g><circle cx="' + C + '" cy="' + C + '" r="9" fill="#fbbf24" stroke="#0f172a" stroke-width="2"/>' +
+                '<polygon points="100,16 90,-8 110,-8" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/></svg>';
+            return s;
+        }
+        function spinTo(idx, fast) {
+            const g = $('wheel-g'); if (!g) return new Promise(r => setTimeout(r, fast ? 300 : 800));
+            const step = 360 / WSL.length, jit = (rnd() - 0.5) * step * 0.7, dur = fast ? 0.7 : 4.2;
+            const need = (((360 - (idx * step + step / 2) + jit) % 360) + 360) % 360, base = wheelRot - (((wheelRot % 360) + 360) % 360);
+            let next = base + 360 * (fast ? 2 : 5) + need; if (next <= wheelRot) next += 360;
+            wheelRot = next; g.style.transition = 'transform ' + dur + 's cubic-bezier(.12,.7,.1,1)'; g.style.transform = 'rotate(' + next + 'deg)';
+            return new Promise(r => setTimeout(r, dur * 1000 + 80));
+        }
+        function wheelInfo() {
+            const W = window.WHEEL, m = meta(), p = Math.min(m.pity || 0, W.pityMax - 1);
+            if ($('wheel-pity')) { $('wheel-pity').style.width = (p / (W.pityMax - 1) * 100) + '%'; $('wheel-pity-t').textContent = p + ' / ' + (W.pityMax - 1); }
+            if ($('wheel-free')) $('wheel-free').textContent = m.freeSpins || 0;
+            if ($('wheel-hist')) $('wheel-hist').innerHTML = wheelHist.map(h => '<span class="chip" title="' + escapeHtml(h.t) + '">' + h.e + '</span>').join('');
+        }
+        window.spinWheel = async (fast) => {
+            const W = window.WHEEL, m = meta();
+            if (spinning) return 'busy';
+            const free = (m.freeSpins || 0) > 0;
+            if (!free && api().score() < W.cost) { toast('Nemáš dost coinů.', 2500); return 'broke'; }
+            spinning = true;
+            if (free) m.freeSpins--; else api().addCoins(-W.cost);
+            m.spins = (m.spins || 0) + 1; wheelInfo();
+            let tier;
+            if ((m.pity || 0) >= W.pityMax - 1) tier = rnd() < 0.15 ? 'op' : 'drop';
+            else { const tot = Object.values(WT).reduce((a, x) => a + x.w, 0); let r = rnd() * tot; tier = 'nothing'; for (const k in WT) { if ((r -= WT[k].w) < 0) { tier = k; break; } } }
+            const idxs = WSL.map((t, i) => t === tier ? i : -1).filter(i => i >= 0);
+            await spinTo(idxs[Math.floor(rnd() * idxs.length)], fast);
+            const T = WT[tier]; let msg = 'Nic… zkus štěstí znovu.', e = T.e, got = false;
+            if (tier === 'drop' || tier === 'op') {
+                let pool = window.limitedDrops.filter(d => d.wheel !== false && !!d.op === (tier === 'op')); if (!pool.length) pool = window.limitedDrops;
+                const wt = (d) => d.wheelW || (d.op ? 1 : 2), tot = pool.reduce((a, d) => a + wt(d), 0); let r = rnd() * tot, d = pool[0];
+                for (const x of pool) { if ((r -= wt(x)) < 0) { d = x; break; } }
+                api().giveDrop(d.id); m.jackpots = (m.jackpots || 0) + 1; got = true; e = d.emoji;
+                msg = (tier === 'op' ? '🔥 OP JACKPOT! ' : '🎉 JACKPOT! ') + d.name + '!';
+                window.triggerExplosion({ text: tier === 'op' ? '🔥 OP JACKPOT!' : '🎉 JACKPOT!', color: tier === 'op' ? '#f97316' : '#fbbf24' }, tier === 'op' ? 200 : 120);
+            } else if (T.frac) { const back = Math.floor(W.cost * T.frac); api().addCoins(back); msg = T.e + ' +' + n0(back) + ' coinů zpět!'; if (T.frac >= 5) window.triggerExplosion({ text: '💎 ×5!', color: '#c084fc' }, 80); }
+            else if (tier === 'free') { m.freeSpins = (m.freeSpins || 0) + 1; msg = '🎟️ Zatočení zdarma!'; }
+            else if (tier === 'boost') { api().tempBoost(2, 120); msg = '⚡ Boost ×2 na 2 minuty!'; }
+            m.pity = got ? 0 : (m.pity || 0) + 1;
+            wheelHist.unshift({ e: e, t: msg }); wheelHist = wheelHist.slice(0, 10);
+            if ($('wheel-msg')) $('wheel-msg').textContent = msg;
+            wheelInfo(); spinning = false; window.saveGameProgress(false); return got ? 'drop' : tier;
+        };
+
+        // ---------- KASINO ----------
+        let cMode = 'flip', cBet = '', ladder = null, cBusy = false;
+        const gs = () => meta().gamble || (meta().gamble = { played: 0, won: 0, lost: 0, best: 0 });
+        function settle(bet, payout) { const g = gs(), net = payout - bet; g.played++; if (net > 0) { g.won += net; g.best = Math.max(g.best, net); } else g.lost += -net; }
+        function parseBet(t) {
+            const x = String(t || '').toLowerCase().replace(/\s/g, '').replace(',', '.'), r = /^([\d.]+)(k|m|mil|mld|bil)?$/.exec(x); if (!r) return 0;
+            const mul = { k: 1e3, m: 1e6, mil: 1e6, mld: 1e9, bil: 1e12 }[r[2]] || 1; return Math.floor(parseFloat(r[1]) * mul) || 0;
+        }
+        const readBet = () => { const el = $('c-bet'); if (el) cBet = el.value; return parseBet(cBet); };
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+        async function cAnim(frames, ms) { const el = $('c-res'); const end = Date.now() + ms; let i = 0; while (Date.now() < end) { if ($('c-res')) $('c-res').textContent = frames[i++ % frames.length]; await sleep(90); } }
+        function cShow(big, msg, good) { const el = $('c-res'); if (el) el.innerHTML = '<div class="text-5xl mb-1">' + big + '</div><div class="text-sm font-bold ' + (good === true ? 'text-green-400' : good === false ? 'text-red-400' : '') + '">' + msg + '</div>'; const b = $('c-bal'); if (b) b.textContent = n0(api().score()); cStats(); }
+        function cStats() { const g = gs(), el = $('c-stats'); if (el) el.innerHTML = 'Sehráno ' + g.played + '× · Vyhráno celkem <b class="text-green-400">' + window.abbr(g.won) + '</b> · Prohráno <b class="text-red-400">' + window.abbr(g.lost) + '</b> · Nejvyšší výhra ' + window.abbr(g.best); }
+        function casinoHTML() {
+            const tabs = [['flip', '🪙 50/50'], ['roulette', '🎨 Ruleta'], ['dice', '🎲 Kostky'], ['ladder', '🪜 Žebřík']];
+            return '<div class="flex gap-1.5 mb-3">' + tabs.map(t => '<button class="ctab ' + (cMode === t[0] ? 'on' : '') + '" onclick="casinoMode(\'' + t[0] + '\')">' + t[1] + '</button>').join('') + '</div>' +
+                '<div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Zůstatek</span><b id="c-bal" class="text-amber-300">' + n0(api().score()) + '</b></div>' +
+                '<input id="c-bet" value="' + escapeHtml(cBet) + '" placeholder="Sázka (např. 5m, 2mld, 1bil)" class="' + inputCls + ' mb-1.5"' + (ladder ? ' disabled' : '') + '>' +
+                '<div class="grid grid-cols-6 gap-1 mb-3">' + [['1k', 'min'], ['½', 'half'], ['×2', 'dbl'], ['10 %', 0.1], ['50 %', 0.5], ['MAX', 1]].map(x => '<button onclick="casinoBet(\'' + x[1] + '\')" class="text-[10px] font-bold bg-slate-700 hover:bg-slate-600 rounded py-1.5">' + x[0] + '</button>').join('') + '</div>' +
+                '<div id="c-game"></div><div id="c-res" class="text-center my-3 min-h-[4.5rem]"></div><div id="c-stats" class="text-[10px] text-slate-400 text-center"></div>';
+        }
+        window.casinoMode = (k) => { if (cBusy || ladder) { toast(ladder ? 'Nejdřív dokonči nebo vyber žebřík.' : 'Počkej…', 2000); return; } readBet(); cMode = k; openModal('casino'); };
+        window.casinoBet = (x) => {
+            if (ladder) return; const sc = Math.floor(api().score()); let v = readBet();
+            if (x === 'min') v = 1000; else if (x === 'half') v = Math.floor(v / 2); else if (x === 'dbl') v = v * 2; else v = Math.floor(sc * x);
+            v = Math.max(0, Math.min(v, sc)); cBet = String(v); if ($('c-bet')) $('c-bet').value = cBet;
+        };
+        function casinoGame() {
+            const g = $('c-game'); if (!g) return; cStats();
+            if (cMode === 'flip') g.innerHTML = '<div class="text-[11px] text-slate-400 mb-1.5">Hádej stranu mince. Šance 50 %, výplata <b>×1,95</b>.</div><div class="grid grid-cols-2 gap-2"><button onclick="casinoPlay(\'flip\',0)" class="cbtn bg-amber-600">🪙 Panna</button><button onclick="casinoPlay(\'flip\',1)" class="cbtn bg-sky-600">🦅 Orel</button></div>';
+            else if (cMode === 'roulette') g.innerHTML = '<div class="text-[11px] text-slate-400 mb-1.5">15 polí: 7 červených, 7 černých, 1 zelené. Červená/černá <b>×2</b> (7/15), zelená <b>×14</b> (1/15).</div><div class="grid grid-cols-3 gap-2"><button onclick="casinoPlay(\'roulette\',\'r\')" class="cbtn bg-red-600">🔴 Červená</button><button onclick="casinoPlay(\'roulette\',\'g\')" class="cbtn bg-green-600">🟢 Zelená</button><button onclick="casinoPlay(\'roulette\',\'b\')" class="cbtn bg-slate-600">⚫ Černá</button></div>';
+            else if (cMode === 'dice') { g.innerHTML = '<div class="text-[11px] text-slate-400 mb-1.5">Hodí se číslo 0–99,99. Vyber šanci výhry; čím nižší, tím větší výplata.</div><div class="flex items-center gap-2 mb-1"><input id="c-chance" type="range" min="2" max="95" value="50" oninput="diceUpd()" class="flex-1"><b id="c-ch-t" class="text-sm w-24 text-right"></b></div><div class="grid grid-cols-2 gap-2"><button onclick="casinoPlay(\'dice\',\'under\')" class="cbtn bg-purple-600">⬇ Pod</button><button onclick="casinoPlay(\'dice\',\'over\')" class="cbtn bg-pink-600">⬆ Nad</button></div>'; diceUpd(); }
+            else if (!ladder) g.innerHTML = '<div class="text-[11px] text-slate-400 mb-1.5">Každý stupeň: 50 % že sázku zdvojnásobíš, jinak o ni přijdeš. Vybrat můžeš kdykoli. 6 stupňů = <b>×64</b>.</div><button onclick="ladderStart()" class="cbtn bg-amber-600 w-full">🪜 Začít žebřík</button>';
+            else { const val = ladder.stake * Math.pow(2, ladder.step); g.innerHTML = '<div class="bg-slate-800 rounded-xl p-3 text-center mb-2"><div class="text-[10px] text-slate-400">Stupeň ' + ladder.step + ' / 6 · ×' + Math.pow(2, ladder.step) + '</div><div class="text-xl font-black text-amber-300">' + n0(val) + '</div></div><div class="grid grid-cols-2 gap-2"><button onclick="ladderRisk()" class="cbtn bg-red-600">🎲 Risknout (50 %) → ' + window.abbr(val * 2) + '</button><button onclick="ladderCash()" class="cbtn bg-green-600">💰 Vybrat</button></div>'; }
+        }
+        window.diceUpd = () => { const c = +($('c-chance') || { value: 50 }).value; if ($('c-ch-t')) $('c-ch-t').textContent = c + ' % · ×' + (Math.floor(9700 / c) / 100).toString().replace('.', ','); };
+        function betOk() { const bet = readBet(); if (!(bet >= 1)) { toast('Zadej sázku.', 2000); return 0; } if (bet > api().score()) { toast('Nemáš dost coinů.', 2000); return 0; } return bet; }
+        function big(win, mult) { if (win && mult >= 10) window.triggerExplosion({ text: '🎰 VELKÁ VÝHRA!', color: '#fbbf24' }, 100); }
+        window.casinoPlay = async (kind, ch) => {
+            if (cBusy || ladder) return; const bet = betOk(); if (!bet) return;
+            cBusy = true; api().addCoins(-bet); let win = false, mult = 0, big_ = '', txt = '';
+            try {
+                if (kind === 'flip') { const r = rnd() < 0.5 ? 0 : 1; await cAnim(['🪙', '🌕', '🦅'], 800); win = r === ch; mult = 1.95; big_ = r ? '🦅' : '🪙'; txt = r ? 'Orel' : 'Panna'; }
+                else if (kind === 'roulette') { const n = Math.floor(rnd() * 15), c = n === 0 ? 'g' : n <= 7 ? 'r' : 'b'; await cAnim(['🔴', '⚫', '🟢'], 1100); win = c === ch; mult = c === 'g' ? 14 : 2; big_ = (c === 'g' ? '🟢' : c === 'r' ? '🔴' : '⚫') + ' ' + n; txt = 'Padlo ' + n; }
+                else if (kind === 'dice') {
+                    const chance = +$('c-chance').value, roll = Math.floor(rnd() * 10000) / 100; mult = Math.floor(9700 / chance) / 100;
+                    await cAnim(['🎲', '🎯'], 700); win = ch === 'under' ? roll < chance : roll >= 100 - chance; big_ = '🎲 ' + roll.toFixed(2).replace('.', ','); txt = (ch === 'under' ? 'Pod ' + chance : 'Nad ' + (100 - chance).toFixed(0)) + ' – ' + (win ? 'trefa' : 'vedle');
+                }
+                const pay = win ? Math.floor(bet * mult) : 0; if (pay) api().addCoins(pay); settle(bet, pay);
+                cShow(big_, txt + ' → ' + (win ? '+' + n0(pay - bet) + ' 🎉' : '−' + n0(bet)), win); big(win, mult);
+            } finally { cBusy = false; window.saveGameProgress(false); }
+        };
+        window.ladderStart = () => { if (cBusy || ladder) return; const bet = betOk(); if (!bet) return; api().addCoins(-bet); ladder = { stake: bet, step: 0 }; if ($('c-bet')) $('c-bet').disabled = true; if ($('c-res')) $('c-res').innerHTML = ''; casinoGame(); };
+        window.ladderRisk = async () => {
+            if (!ladder || cBusy) return; cBusy = true;
+            try {
+                await cAnim(['🎲', '🪜'], 700);
+                if (rnd() < 0.5) { ladder.step++; if (ladder.step >= 6) { cBusy = false; ladderCash(); return; } cShow('✅', 'Stupeň ' + ladder.step + '! Pokračuj nebo vyber.', true); }
+                else { const st = ladder.stake; settle(st, 0); ladder = null; if ($('c-bet')) $('c-bet').disabled = false; cShow('💥', 'Spadl jsi. −' + n0(st), false); window.saveGameProgress(false); }
+            } finally { cBusy = false; casinoGame(); }
+        };
+        window.ladderCash = (auto) => {
+            if (!ladder) return; const pay = ladder.stake * Math.pow(2, ladder.step), st = ladder.stake, stp = ladder.step; ladder = null;
+            api().addCoins(pay); settle(st, pay);
+            if ($('c-bet')) $('c-bet').disabled = false;
+            if (!auto && $('c-res')) { cShow('💰', 'Vybráno ' + n0(pay) + (stp ? ' (+' + n0(pay - st) + ')' : ''), stp > 0 ? true : undefined); big(stp >= 4, Math.pow(2, stp)); casinoGame(); }
+            window.saveGameProgress(false);
+        };
+        window.addEventListener('pagehide', () => { if (ladder) window.ladderCash(true); });
+
 
 // ---------- AUTO SPIN ----------
         function updateAutoBtn() { const b = $('auto-btn'); if (b) b.textContent = autoSpin ? '⏹ Zastavit auto (' + autoN + '×)' : '🔁 Auto spin'; }
@@ -1312,7 +1465,7 @@ window.renderAdminPlayers = () => {
 
     <!-- HERNÍ LOGIKA -->
     <script>
-        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":100000000,"cps":100000,"clickPower":10000},{"name":"Úmělá vagína","price":10000000000,"cps":1000000,"clickPower":200000},{"name":"Umělé sperma","price":30000000000,"cps":3000000,"clickPower":300000},{"name":"Vibrační vajíčko","price":300000,"cps":7700,"clickPower":510},{"name":"Anální kuličky","price":800000,"cps":8800,"clickPower":580},{"name":"Pumpička na penis","price":2000000,"cps":10000,"clickPower":690},{"name":"Nafukovací panna","price":5000000,"cps":12000,"clickPower":780},{"name":"Masážní hlavice Hitachi","price":50000000,"cps":65000,"clickPower":4300},{"name":"Latexový oblek","price":200000000,"cps":180000,"clickPower":12000},{"name":"Erotická houpačka","price":500000000,"cps":290000,"clickPower":20000},{"name":"Sada na BDSM","price":1000000000,"cps":420000,"clickPower":27000},{"name":"Erotická lavice","price":3000000000,"cps":720000,"clickPower":48000},{"name":"Rotační masturbátor 3000","price":6000000000,"cps":1000000,"clickPower":66000},{"name":"VR headset s haptickým oblekem","price":15000000000,"cps":2000000,"clickPower":130000},{"name":"Robotická společnice","price":20000000000,"cps":2600000,"clickPower":170000},{"name":"Továrna na lubrikant","price":60000000000,"cps":7800000,"clickPower":520000},{"name":"Franšíza sexshopů","price":100000000000,"cps":13000000,"clickPower":870000},{"name":"Orgasmická elektrárna","price":300000000000,"cps":39000000,"clickPower":2600000},{"name":"Kosmická loď lásky","price":1000000000000,"cps":130000000,"clickPower":8700000},{"name":"Gooningová dimenze","price":5000000000000,"cps":650000000,"clickPower":43000000},{"name":"Bůh gooningu","price":20000000000000,"cps":2600000000,"clickPower":170000000}]};
+        const config = {"currency":"Goon Coins","emoji":"🍑","milestone10":{"text":"Výstřik","color":"#ffffff"},"milestone100":{"text":"Fontána","color":"#ffffff"},"upgrades":[{"name":"Automatický Masturbátor","price":15,"cps":1,"clickPower":0},{"name":"Manuální Masturbátor","price":100,"cps":5,"clickPower":1},{"name":"Sliny / olivový olej","price":500,"cps":20,"clickPower":5},{"name":"Lubrikant","price":2000,"cps":80,"clickPower":15},{"name":"Lubrikant Durex","price":10000,"cps":150,"clickPower":45},{"name":"Dildo","price":100000,"cps":5000,"clickPower":100},{"name":"Dieslový Masturbátor","price":10000000,"cps":10000,"clickPower":600},{"name":"Kondom s příchutí","price":20000000,"cps":20000,"clickPower":1000},{"name":"Trenky se zipem,","price":30000000,"cps":30000,"clickPower":1500},{"name":"Klec na péro","price":100000000,"cps":100000,"clickPower":10000},{"name":"Úmělá vagína","price":10000000000,"cps":1000000,"clickPower":200000},{"name":"Umělé sperma","price":30000000000,"cps":3000000,"clickPower":300000},{"name":"Vibrační vajíčko","price":300000,"cps":7700,"clickPower":510},{"name":"Anální kuličky","price":800000,"cps":8800,"clickPower":580},{"name":"Pumpička na penis","price":2000000,"cps":10000,"clickPower":690},{"name":"Nafukovací panna","price":5000000,"cps":12000,"clickPower":780},{"name":"Masážní hlavice Hitachi","price":50000000,"cps":65000,"clickPower":4300},{"name":"Latexový oblek","price":200000000,"cps":180000,"clickPower":12000},{"name":"Erotická houpačka","price":500000000,"cps":290000,"clickPower":20000},{"name":"Sada na BDSM","price":1000000000,"cps":420000,"clickPower":27000},{"name":"Erotická lavice","price":3000000000,"cps":720000,"clickPower":48000},{"name":"Rotační masturbátor 3000","price":6000000000,"cps":1000000,"clickPower":66000},{"name":"VR headset s haptickým oblekem","price":15000000000,"cps":2000000,"clickPower":130000},{"name":"Robotická společnice","price":20000000000,"cps":2600000,"clickPower":170000},{"name":"Továrna na lubrikant","price":60000000000,"cps":7800000,"clickPower":520000},{"name":"Franšíza sexshopů","price":100000000000,"cps":13000000,"clickPower":870000},{"name":"Orgasmická elektrárna","price":300000000000,"cps":39000000,"clickPower":2600000},{"name":"Kosmická loď lásky","price":1000000000000,"cps":130000000,"clickPower":8700000},{"name":"Gooningová dimenze","price":5000000000000,"cps":650000000,"clickPower":43000000},{"name":"Bůh gooningu","price":20000000000000,"cps":2600000000,"clickPower":170000000},{"name":"Vibrační prstýnek","price":40000,"cps":1000,"clickPower":66},{"name":"Hřejivý gel","price":1200000,"cps":10000,"clickPower":666},{"name":"Elektro stimulátor","price":9000000,"cps":30000,"clickPower":2000},{"name":"Masážní křeslo","price":30000000,"cps":60000,"clickPower":4000},{"name":"Svůdný kostým","price":120000000,"cps":133000,"clickPower":8866},{"name":"Plesový sál rozkoše","price":700000000,"cps":350000,"clickPower":23333},{"name":"Orgasmický simulátor","price":2000000000,"cps":570000,"clickPower":38000},{"name":"Neonový klub","price":8000000000,"cps":1230000,"clickPower":82000},{"name":"Hedonistická vila","price":25000000000,"cps":3330000,"clickPower":222000},{"name":"Tajná laboratoř rozkoše","price":80000000000,"cps":10400000,"clickPower":693333},{"name":"Soukromý ostrov","price":200000000000,"cps":26000000,"clickPower":1733333},{"name":"Orbitální bordel","price":600000000000,"cps":78000000,"clickPower":5200000},{"name":"Černá díra slasti","price":2500000000000,"cps":325000000,"clickPower":21666666},{"name":"Multiverzní masturbátor","price":12000000000000,"cps":1560000000,"clickPower":104000000},{"name":"Chrám věčné rozkoše","price":50000000000000,"cps":6500000000,"clickPower":433333333},{"name":"Galaktické impérium rozkoše","price":150000000000000,"cps":19500000000,"clickPower":1300000000},{"name":"Konec vesmíru (a gooningu)","price":500000000000000,"cps":65000000000,"clickPower":4333333333}]};
 
         // ===== LIMITOVANÉ DROPY =====
         // Každých intervalMin minut se objeví drop a je k dispozici durationSec sekund.
@@ -1329,7 +1482,7 @@ window.renderAdminPlayers = () => {
             { id: 'masturbacni-rukavice',  emoji: '✋', name: 'Masturbační rukavice', price: 200000,  cps: 120000, clickPower: 50000, stock: 5, maxPerPlayer: 100000 },
             { id: 'masturbator-natuszkovebaterie',  emoji: '🔋', name: 'Masturbátor na tužkové baterky', price: 1000000, cps: 600000, clickPower: 200000, stock: 2, maxPerPlayer: 1000000 },
             // --- nové dropy (wheelW = šance v kole štěstí, výchozí 2; wheel: false = v kole nepadá) ---
-            { id: 'vysavac-spermii',  emoji: '🐍', name: 'Vysavač spermií', price: 100000000, cps: 1200000, clickPower: 1000000, stock: 1, maxPerPlayer: 1000000, wheelW: 0.5 },
+            { id: 'vysavac-spermii',  emoji: '🐍', name: 'Vysavač spermií', price: 100000000, cps: 1200000, clickPower: 1000000, stock: 1, maxPerPlayer: 1000000, wheelW: 0.5, op: true },
             { id: 'bullet-vibrator',  emoji: '💜', name: 'Mini vibrátor Bullet', price: 150000, cps: 60000, clickPower: 25000, stock: 15, maxPerPlayer: 3 },
             { id: 'cock-ring',  emoji: '⭕', name: 'Vibrační erekční kroužek', price: 400000, cps: 150000, clickPower: 60000, stock: 12, maxPerPlayer: 2 },
             { id: 'silikon-lubrikant',  emoji: '🧴', name: 'Silikonový lubrikant XXL', price: 800000, cps: 280000, clickPower: 110000, stock: 10, maxPerPlayer: 3 },
@@ -1338,18 +1491,30 @@ window.renderAdminPlayers = () => {
             { id: 'vakuova-pumpa',  emoji: '🫧', name: 'Vakuová pumpa', price: 6000000, cps: 1000000, clickPower: 400000, stock: 5, maxPerPlayer: 1 },
             { id: 'magic-wand',  emoji: '🪄', name: 'Magic Wand masážní hlavice', price: 12000000, cps: 1600000, clickPower: 650000, stock: 4, maxPerPlayer: 1 },
             { id: 'fleshlight-turbo',  emoji: '🔦', name: 'Fleshlight Turbo', price: 25000000, cps: 2500000, clickPower: 900000, stock: 3, maxPerPlayer: 1 },
-            { id: 'sex-machine',  emoji: '⚙️', name: 'Sex machine s dálkovým ovladačem', price: 60000000, cps: 4500000, clickPower: 1800000, stock: 2, maxPerPlayer: 1, wheelW: 1 }
+            { id: 'sex-machine',  emoji: '⚙️', name: 'Sex machine s dálkovým ovladačem', price: 60000000, cps: 4500000, clickPower: 1800000, stock: 2, maxPerPlayer: 1, wheelW: 1, op: true },
+            // --- 🔥 OP limitky (cps ≈ cena / 20–40 s, malý sklad; padají i v kole štěstí) ---
+            { id: 'zlaty-vibrator',  emoji: '🌟', name: 'Zlatý vibrátor', price: 500000000, cps: 25000000, clickPower: 8000000, stock: 2, maxPerPlayer: 1000000, wheelW: 1, op: true },
+            { id: 'diamantovy-dildo',  emoji: '💎', name: 'Diamantové dildo', price: 2000000000, cps: 90000000, clickPower: 30000000, stock: 2, maxPerPlayer: 1000000, wheelW: 1, op: true },
+            { id: 'raketovy-masturbator',  emoji: '🚀', name: 'Raketový masturbátor', price: 8000000000, cps: 300000000, clickPower: 100000000, stock: 2, maxPerPlayer: 1000000, wheelW: 0.8, op: true },
+            { id: 'quantum-fleshlight',  emoji: '⚛️', name: 'Kvantový Fleshlight', price: 30000000000, cps: 1100000000, clickPower: 380000000, stock: 1, maxPerPlayer: 1000000, wheelW: 0.6, op: true },
+            { id: 'robo-harem',  emoji: '🤖', name: 'Robo-harém', price: 100000000000, cps: 3500000000, clickPower: 1200000000, stock: 1, maxPerPlayer: 1000000, wheelW: 0.5, op: true },
+            { id: 'orgasmicky-reaktor',  emoji: '☢️', name: 'Orgasmický reaktor', price: 400000000000, cps: 14000000000, clickPower: 4500000000, stock: 1, maxPerPlayer: 1000000, wheelW: 0.4, op: true },
+            { id: 'cerna-diva-lasky',  emoji: '🕳️', name: 'Černá díra lásky', price: 1500000000000, cps: 50000000000, clickPower: 16000000000, stock: 1, maxPerPlayer: 1000000, wheelW: 0.3, op: true },
+            { id: 'bozsky-vibrator',  emoji: '👑', name: 'Božský vibrátor', price: 8000000000000, cps: 250000000000, clickPower: 80000000000, stock: 1, maxPerPlayer: 1000000, wheelW: 0.2, op: true }
         ];
 
         let score = 0, totalCps = 0, clickPower = 1, totalClicks = 0;
         let limited = { owned: {}, slot: 0, slotBought: 0 };
         let roleBoost = { cps: 1, click: 1 };
-        const effCps = () => totalCps * roleBoost.cps, effClick = () => clickPower * roleBoost.click;
+        let tmpBoost = { m: 1, until: 0 };
+        const tmpM = () => (tmpBoost.until > Date.now() ? tmpBoost.m : 1);
+        const effCps = () => totalCps * roleBoost.cps * tmpM(), effClick = () => clickPower * roleBoost.click * tmpM();
         const meta = { fx: 'none', color2: '#ec4899', banner: '#a855f7', frame: 'none', theme: (function () { try { return localStorage.getItem('goon_theme') || 'noc'; } catch (e) { return 'noc'; } })(), avatar: '🗿', font: 'sans', color: '#fbbf24', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, joined: Date.now() };
 
         // ===== KOLO ŠTĚSTÍ =====
         // cost = cena zatočení, w = váha (šance). Limitované dropy se do kola přidávají automaticky (w: 2 každý).
-        const WHEEL = { cost: 1000000000, prizes: [{ t: 'nothing', w: 80 }, { t: 'coins', frac: 0.5, w: 14 }].concat(limitedDrops.filter(d => d.wheel !== false).map(d => ({ t: 'drop', id: d.id, w: d.wheelW || 2 }))) };
+        // (výhry a šance jsou v modulu: WT a WSL u funkce spinWheel; pityMax = po kolika zatočeních bez limitky je další jistá)
+        const WHEEL = { cost: 1000000000, pityMax: 40 };
         window.WHEEL = WHEEL; window.limitedDrops = limitedDrops;
 
         const upgrades = config.upgrades.map(u => ({
@@ -1371,7 +1536,7 @@ window.renderAdminPlayers = () => {
             if (!data) return;
             score = Number(data.coins) || 0;
             totalClicks = Number(data.clicks) || 0;
-            if (opts && opts.replace) { upgrades.forEach(u => { u.count = 0; u.currentPrice = u.basePrice; }); limited = { owned: {}, slot: 0, slotBought: 0 }; }
+            if (opts && opts.replace) { upgrades.forEach(u => { u.count = 0; u.currentPrice = u.basePrice; }); limited = { owned: {}, slot: 0, slotBought: 0 }; meta.shop = null; meta.pity = 0; meta.freeSpins = 0; meta.gamble = null; }
 
             if (data.nick && data.nick !== 'Anonym') {
                 const nickInput = document.getElementById('player-nick');
@@ -1426,8 +1591,8 @@ window.renderAdminPlayers = () => {
         }
         window.applyEmoji = applyEmoji;
         function applyTheme(t) {
-            if (['noc', 'neon', 'light', 'ocean', 'sunset', 'forest', 'sakura', 'hacker'].indexOf(t) < 0) t = 'noc';
-            meta.theme = t; document.documentElement.dataset.theme = t;
+            if (['noc', 'neon', 'light', 'ocean', 'sunset', 'forest', 'sakura', 'sakura-dark', 'hacker'].indexOf(t) < 0) t = 'noc';
+            meta.theme = t; document.documentElement.dataset.theme = t; if (typeof petals === 'function') petals(t === 'sakura-dark');
             try { localStorage.setItem('goon_theme', t); } catch (e) {}
         }
         window.applyTheme = applyTheme;
@@ -1477,7 +1642,7 @@ window.renderAdminPlayers = () => {
 
         function updateUI() {
             scoreUI.textContent = fmt(score); scoreUI.title = Math.floor(score).toLocaleString('cs-CZ');
-            cpsUI.textContent = '+' + fmt(effCps()) + ' / s' + (roleBoost.cps !== 1 ? ' ⚡×' + roleBoost.cps : '');
+            cpsUI.textContent = '+' + fmt(effCps()) + ' / s' + (roleBoost.cps !== 1 ? ' ⚡×' + roleBoost.cps : '') + (tmpM() > 1 ? ' 🎡×' + tmpBoost.m : '');
             const pw = document.getElementById('power-val'); if (pw) pw.textContent = '+' + fmt(effClick()) + ' / klik' + (roleBoost.click !== 1 ? ' ⚡×' + roleBoost.click : '');
             clicksUI.textContent = fmt(totalClicks);
             if (typeof refreshDrop === 'function') refreshDrop();
@@ -1556,7 +1721,10 @@ window.renderAdminPlayers = () => {
         });
 
         setInterval(() => {
-            if (totalCps > 0) { score += effCps(); syncGlobalState(); updateUI(); }
+            shopTick();
+            if (totalCps > 0) score += effCps();
+            syncGlobalState(); updateUI();
+            if (document.getElementById('shop-live')) window.shopLive();
         }, 1000);
 
         // ===== OBROVSKÁ BÍLÁ EXPLOZE (konec souboje) =====
@@ -1576,10 +1744,10 @@ window.renderAdminPlayers = () => {
         window.megaExplosion = megaExplosion;
 
         // ===== TOAST + HERNÍ API PRO MODUL =====
-        function showToast(text, ms) {
+        function showToast(text, ms, bg) {
             const t = document.createElement('div');
             t.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[400] bg-red-700/95 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-2xl max-w-[90%] text-center';
-            t.style.color = '#fff'; t.textContent = text; document.body.appendChild(t); setTimeout(() => t.remove(), ms || 4000);
+            t.style.color = '#fff'; if (bg) t.style.background = bg; t.textContent = text; document.body.appendChild(t); setTimeout(() => t.remove(), ms || 4000);
         }
         function recalcTotals() {
             totalCps = 0; clickPower = 1;
@@ -1589,17 +1757,18 @@ window.renderAdminPlayers = () => {
         window.gameAPI = {
             score: () => score,
             addCoins(n) { score = Math.max(0, score + n); syncGlobalState(); updateUI(); },
+            tempBoost(m, sec) { tmpBoost = { m: m, until: Date.now() + sec * 1000 }; syncGlobalState(); updateUI(); },
             setBoost(b) { roleBoost = { cps: Number(b.cps) || 1, click: Number(b.click) || 1 }; syncGlobalState(); updateUI(); },
             giveDrop(id) { limited.owned[id] = (limited.owned[id] || 0) + 1; recalcTotals(); syncGlobalState(); updateUI(); },
             wipe() {
                 this.penalty({ reset: true });
-                Object.assign(meta, { avatar: '🗿', font: 'sans', fx: 'none', color: '#fbbf24', color2: '#ec4899', banner: '#a855f7', frame: 'none', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, bestKps: 0, bestTime: 0, img: '', joined: Date.now() });
+                Object.assign(meta, { avatar: '🗿', font: 'sans', fx: 'none', color: '#fbbf24', color2: '#ec4899', banner: '#a855f7', frame: 'none', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, bestKps: 0, bestTime: 0, img: '', joined: Date.now(), shop: null, pity: 0, freeSpins: 0, gamble: null });
                 applyEmoji(); syncGlobalState(); updateUI();
             },
             penalty(p) {
                 const c = Math.min(100, Math.max(0, Number(p.coinsPct) || 0)), u = Math.min(100, Math.max(0, Number(p.upgradesPct) || 0));
                 if (p.reset) {
-                    score = 0; totalClicks = 0; upgrades.forEach(x => { x.count = 0; x.currentPrice = x.basePrice; }); limited = { owned: {}, slot: 0, slotBought: 0 };
+                    score = 0; totalClicks = 0; upgrades.forEach(x => { x.count = 0; x.currentPrice = x.basePrice; }); limited = { owned: {}, slot: 0, slotBought: 0 }; meta.shop = null; meta.pity = 0; meta.freeSpins = 0;
                 } else {
                     score = Math.floor(score * (1 - c / 100));
                     upgrades.forEach(x => { x.count -= Math.round(x.count * u / 100); x.currentPrice = Math.ceil(x.basePrice * Math.pow(1.15, x.count)); });
@@ -1652,7 +1821,7 @@ window.renderAdminPlayers = () => {
             byId('drop-body').innerHTML =
                 '<div class="flex items-center justify-between gap-3">' +
                   '<div class="text-3xl">' + def.emoji + '</div>' +
-                  '<div class="flex-1"><div class="font-bold text-sm text-white">' + def.name + '</div>' +
+                  '<div class="flex-1"><div class="font-bold text-sm text-white">' + def.name + (def.op ? ' <span class="text-[9px] bg-orange-600 text-white rounded px-1 align-middle">🔥 OP</span>' : '') + '</div>' +
                   '<div class="text-xs text-purple-400">+' + fmt(def.cps) + '/s | +' + fmt(def.clickPower) + '/klik</div>' +
                   '<div class="text-[11px] text-slate-400 mt-0.5" id="drop-stock"></div></div>' +
                   '<button id="drop-buy" onclick="buyDrop()" class="bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:hover:bg-amber-500 text-slate-950 font-black text-xs px-3 py-2 rounded-lg active:scale-95 transition">Koupit<br>' + fmt(def.price) + '</button>' +
@@ -1728,6 +1897,116 @@ window.renderAdminPlayers = () => {
         }
         setInterval(tickDrop, 1000);
         tickDrop();
+
+
+        // ===== DOČASNÝ BOOST (z kola štěstí) =====
+        // (effCps / effClick používají tmpM())
+
+        // ===== SEX SHOP =====
+        // Koupíš za SHOP.price. Zboží se prodává samo (rate ks/s), ale musíš ho dokupovat (unitCost za kus).
+        // Tržba z kusu = unitCost × (baseMult + 0.25 × úroveň marže). Ladění: změň čísla níže.
+        const SHOP = { price: 1.5e12, unitCost: 2000000, baseCap: 60000, baseRate: 100, baseMult: 3, maxLvl: 12, growth: 2.2, startStock: 10000,
+            up: { sl: { name: '📦 Sklad', base: 5e11 }, st: { name: '🧑‍💼 Prodavači', base: 5e11 }, mg: { name: '💹 Marže', base: 8e11 } } };
+        const shopS = () => (meta.shop && meta.shop.on ? meta.shop : null);
+        const shopCap = (s, l) => Math.floor(SHOP.baseCap * Math.pow(1.5, l === undefined ? s.sl : l));
+        const shopRate = (s, l) => SHOP.baseRate * Math.pow(1.3, l === undefined ? s.st : l);
+        const shopMult = (s, l) => SHOP.baseMult + 0.25 * (l === undefined ? s.mg : l);
+        const shopUpPrice = (k, s) => Math.ceil(SHOP.up[k].base * Math.pow(SHOP.growth, s[k]));
+        function shopPerSec(s) {
+            const n = Math.min(s.stock, shopRate(s)), inc = n * SHOP.unitCost * shopMult(s) * roleBoost.cps * tmpM();
+            return { n: n, inc: inc, profit: inc - n * SHOP.unitCost };
+        }
+        function shopTick() {
+            const s = shopS(); if (!s) return;
+            const now = Date.now(); let dt = (now - (s.t || now)) / 1000; s.t = now;
+            if (dt <= 0 || !(s.stock > 0)) return;
+            dt = Math.min(dt, 86400);
+            const n = Math.min(s.stock, shopRate(s) * dt); if (n <= 0) return;
+            const rev = n * SHOP.unitCost * shopMult(s) * roleBoost.cps * tmpM();
+            s.stock -= n; s.sold = (s.sold || 0) + n; s.earned = (s.earned || 0) + rev; score += rev;
+            if (dt > 20) showToast('🏪 Sex shop vydělal ' + abbr(rev) + ' během tvé nepřítomnosti.', 5000, '#15803d');
+        }
+        function shopAfter() { syncGlobalState(); updateUI(); if (window.saveGameProgress) window.saveGameProgress(false); if (window.openModal) window.openModal('shop'); }
+        window.shopBuy = function () {
+            if (shopS()) return;
+            if (score < SHOP.price) { showToast('Na obchod ti chybí ' + abbr(SHOP.price - score) + '.', 3000); return; }
+            score -= SHOP.price;
+            meta.shop = { on: 1, stock: SHOP.startStock, sl: 0, st: 0, mg: 0, t: Date.now(), earned: 0, sold: 0 };
+            if (window.triggerExplosion) window.triggerExplosion({ text: '🏪 SEX SHOP OTEVŘEN!', color: '#f472b6' }, 120);
+            shopAfter();
+        };
+        window.shopRestock = function (frac) {
+            const s = shopS(); if (!s) return;
+            shopTick();
+            const room = Math.floor(shopCap(s) - s.stock);
+            let want = frac >= 1 ? room : Math.min(room, Math.ceil(shopCap(s) * frac));
+            const afford = Math.floor(score / SHOP.unitCost);
+            const n = Math.min(want, afford);
+            if (n <= 0) { showToast(room <= 0 ? 'Sklad je plný.' : 'Nemáš dost coinů na zboží.', 2500); return; }
+            score -= n * SHOP.unitCost; s.stock += n; shopAfter();
+        };
+        window.shopUpgrade = function (k) {
+            const s = shopS(); if (!s || !SHOP.up[k]) return;
+            if (s[k] >= SHOP.maxLvl) return;
+            const p = shopUpPrice(k, s);
+            if (score < p) { showToast('Chybí ti ' + abbr(p - score) + '.', 2500); return; }
+            shopTick(); score -= p; s[k]++; shopAfter();
+        };
+        window.shopHTML = function () {
+            const s = shopS(), u = SHOP.unitCost;
+            const st = (l, v) => '<div class="bg-slate-800 rounded-lg p-2"><div class="text-[10px] text-slate-400">' + l + '</div><div class="text-sm font-bold text-amber-300">' + v + '</div></div>';
+            if (!s) {
+                return '<div class="text-center"><div class="text-6xl my-2">🏪</div><div class="font-black text-lg mb-1">Vlastní Sex shop</div>' +
+                    '<div class="text-xs text-slate-400 mb-3">Koupíš si obchod. Zboží se prodává samo, ale musíš ho <b class="text-slate-200">dokupovat</b> – když sklad dojde, obchod nevydělává. Vylepšuj sklad, prodavače a marži. Vydělává víc než upgrady a tržby se počítají do tvých coinů i žebříčku (🏪 u jména).</div>' +
+                    '<div class="grid grid-cols-2 gap-2 mb-3 text-left">' + st('Nákup zboží', abbr(u) + ' / ks') + st('Prodej za', abbr(u * SHOP.baseMult) + ' / ks') + st('Sklad (start)', abbr(SHOP.baseCap) + ' ks') + st('Prodej (start)', SHOP.baseRate + ' ks / s') + '</div>' +
+                    '<button onclick="shopBuy()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl active:scale-95 transition">Koupit za ' + abbr(SHOP.price) + '</button>' +
+                    (score < SHOP.price ? '<div class="text-[11px] text-red-400 mt-2">Chybí ti ještě ' + abbr(SHOP.price - score) + '</div>' : '') + '</div>';
+            }
+            const cap = shopCap(s);
+            const ups = ['sl', 'st', 'mg'].map(function (k) {
+                const l = s[k], max = l >= SHOP.maxLvl, p = shopUpPrice(k, s);
+                const eff = k === 'sl' ? 'Sklad ' + abbr(shopCap(s)) + (max ? '' : ' → ' + abbr(shopCap(s, l + 1))) + ' ks'
+                    : k === 'st' ? 'Prodej ' + abbr(shopRate(s)) + (max ? '' : ' → ' + abbr(shopRate(s, l + 1))) + ' ks/s'
+                    : 'Tržba ' + shopMult(s).toFixed(2).replace('.', ',') + '×' + (max ? '' : ' → ' + shopMult(s, l + 1).toFixed(2).replace('.', ',') + '×') + ' z kusu';
+                return '<div class="flex items-center gap-2 bg-slate-800 rounded-xl p-2.5"><div class="flex-1 min-w-0"><div class="text-sm font-bold">' + SHOP.up[k].name + ' <span class="text-[10px] text-slate-400">úr. ' + l + '/' + SHOP.maxLvl + '</span></div><div class="text-[11px] text-purple-300">' + eff + '</div></div>' +
+                    (max ? '<div class="text-xs font-black text-green-400">MAX</div>' : '<button onclick="shopUpgrade(\'' + k + '\')" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-black px-3 py-2 rounded-lg active:scale-95">' + abbr(p) + '</button>') + '</div>';
+            }).join('');
+            return '<div id="shop-live">' +
+                '<div class="flex justify-between text-xs mb-1"><span>📦 Sklad</span><span id="shop-stock-txt" class="font-mono font-bold"></span></div><div class="pbar mb-1"><div id="shop-stock-bar" style="width:0"></div></div>' +
+                '<div id="shop-warn" class="text-[11px] text-red-400 font-bold mb-1 hidden">⚠️ Došlo zboží! Obchod nevydělává – dokup ho.</div>' +
+                '<div class="grid grid-cols-2 gap-2 my-3">' + st('Tržba / s', '<span id="shop-income"></span>') + st('Čistý zisk / s', '<span id="shop-profit"></span>') + st('Celkem vyděláno', '<span id="shop-earned"></span>') + st('Prodáno kusů', '<span id="shop-sold"></span>') + '</div>' +
+                '<div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dokoupit zboží (' + abbr(u) + ' / ks)</div>' +
+                '<div class="grid grid-cols-3 gap-2 mb-1"><button onclick="shopRestock(0.1)" class="cbtn bg-sky-600">+10 %</button><button onclick="shopRestock(0.25)" class="cbtn bg-sky-600">+25 %</button><button onclick="shopRestock(1)" class="cbtn bg-green-600">Na plno</button></div>' +
+                '<div class="text-[10px] text-slate-500 mb-3">Na plno: <span id="shop-full-cost"></span></div>' +
+                '<div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Vylepšení</div><div class="space-y-2">' + ups + '</div></div>';
+        };
+        window.shopLive = function () {
+            const s = shopS(), e = function (id) { return document.getElementById(id); }; if (!s || !e('shop-live')) return;
+            const cap = shopCap(s), ps = shopPerSec(s), room = Math.max(0, Math.floor(cap - s.stock));
+            e('shop-stock-txt').textContent = abbr(Math.floor(s.stock)) + ' / ' + abbr(cap);
+            e('shop-stock-bar').style.width = Math.min(100, s.stock / cap * 100) + '%';
+            e('shop-warn').classList.toggle('hidden', s.stock >= 1);
+            e('shop-income').textContent = abbr(ps.inc); e('shop-profit').textContent = abbr(ps.profit);
+            e('shop-earned').textContent = abbr(s.earned || 0); e('shop-sold').textContent = abbr(Math.floor(s.sold || 0));
+            e('shop-full-cost').textContent = abbr(room * SHOP.unitCost) + (score < room * SHOP.unitCost ? ' (máš jen na ' + abbr(Math.floor(score / SHOP.unitCost) * SHOP.unitCost) + ')' : '');
+        };
+
+        // ===== SAKURA: okvětní lístky =====
+        function petals(on) {
+            let el = document.getElementById('petals');
+            if (!on) { if (el) el.remove(); return; }
+            if (el) return;
+            el = document.createElement('div'); el.id = 'petals';
+            for (let i = 0; i < 16; i++) {
+                const s = document.createElement('span');
+                s.textContent = '🌸'; s.style.left = (Math.random() * 100) + '%'; s.style.fontSize = (12 + Math.random() * 14) + 'px';
+                s.style.opacity = (0.5 + Math.random() * 0.5).toFixed(2);
+                s.style.animationDuration = (10 + Math.random() * 12).toFixed(1) + 's'; s.style.animationDelay = '-' + (Math.random() * 20).toFixed(1) + 's';
+                el.appendChild(s);
+            }
+            document.body.appendChild(el);
+        }
+        petals(document.documentElement.dataset.theme === 'sakura-dark');
 
         renderShop();
         syncGlobalState();
