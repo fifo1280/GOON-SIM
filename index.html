@@ -221,6 +221,7 @@
                 <button id="save-score-btn" onclick="window.saveGameProgress && window.saveGameProgress(true)" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 px-3 rounded-lg text-xs uppercase tracking-wider transition active:scale-95">💾 Uložit pozici & skóre</button>
                 <button id="google-btn" onclick="window.googleLogin && window.googleLogin()" class="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-2 px-3 rounded-lg text-xs transition active:scale-95">🔐 Přihlásit přes Google</button>
                 <button id="logout-btn" onclick="window.googleLogout && window.googleLogout()" class="hidden w-full bg-slate-700 hover:bg-slate-600 text-white py-2 px-3 rounded-lg text-xs transition">Odhlásit</button>
+                <button onclick="openModal('recovery')" class="w-full bg-sky-700 hover:bg-sky-600 text-white font-bold py-2 px-3 rounded-lg text-xs transition active:scale-95">🛟 Záchrana & záloha dat</button>
             </div>
 
             <div class="card p-4 flex-1 min-h-0 flex flex-col">
@@ -280,9 +281,15 @@
             };
         }
         function isEmptyState() { return !(window.gameScore > 0) && !(window.gameClicks > 0); }
+        let localBestClicks = -1;
         function saveLocal(force) {
             if (isEmptyState() && !force) return;
-            try { localStorage.setItem(localKey(), JSON.stringify(buildState())); } catch (e) {}
+            try {
+                const st = buildState(), bk = 'goon_best_' + (currentUser ? currentUser.uid : 'local');
+                localStorage.setItem(localKey(), JSON.stringify(st));
+                if (localBestClicks < 0) { try { localBestClicks = (JSON.parse(localStorage.getItem(bk)) || {}).clicks || 0; } catch (e) { localBestClicks = 0; } }
+                if ((st.clicks || 0) > localBestClicks) { localBestClicks = st.clicks; localStorage.setItem(bk, JSON.stringify(st)); }  // nejlepší dosažený postup
+            } catch (e) {}
         }
 
         async function initFirebase() {
@@ -303,7 +310,7 @@
             } catch (err) {
                 if (err.code === 'auth/credential-already-in-use' || err.code === 'auth/email-already-in-use') {
                     const cred = GoogleAuthProvider.credentialFromError(err);
-                    try { if (cred) await signInWithCredential(auth, cred); } catch (e) { console.error(e); }
+                    try { if (cred && confirmSwitch()) await signInWithCredential(auth, cred); } catch (e) { console.error(e); }
                 } else {
                     console.error('Redirect chyba:', err);
                 }
@@ -355,31 +362,87 @@
             });
         }
 
+// ===== OCHRANA DAT: bezpečné načtení, kontrola konfliktů mezi zařízeními, zálohy =====
+        let cloudReady = false, lastWriteAt = 0, bestClicks = 0, bkBestClicks = 0, lastBkHour = -1, lastBestAt = 0, lastCloudCheck = 0, promptOpen = false, saving = false, retryTimer = null;
+        const bkDoc = (id) => doc(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'saves', id);
+        const upCount = (d) => (d && Array.isArray(d.upgrades) ? d.upgrades.reduce((a, u) => a + ((u && u.count) || 0), 0) : 0);
+        const limCount = (d) => (d && d.limited && d.limited.owned ? Object.keys(d.limited.owned).reduce((a, k) => a + (Number(d.limited.owned[k]) || 0), 0) : 0);
+        const fmtN = (n) => (window.abbr ? window.abbr(Number(n) || 0) : String(n));
+
         async function loadCloudProgress() {
-            loaded = false;
-            let cloud = null, cloudOk = true;
+            loaded = false; cloudReady = false;
+            let cloud = null, ok = true;
             try {
-                const snap = await getDoc(saveDoc());
+                const snap = await getDocFromServer(saveDoc());   // vždy ze serveru, ne z paměti prohlížeče
                 if (snap.exists()) cloud = snap.data();
             } catch (err) {
-                cloudOk = false;
+                ok = false;
                 console.error('Načtení savu:', err);
-                setStatus('⚠️ Cloud save nedostupný (' + err.code + ')');
+                setStatus('⚠️ Cloud nedostupný – ukládám jen v tomto zařízení (' + (err.code || '?') + ')');
             }
-            // Cloud má přednost; lokální záloha jen když cloud nic nemá nebo je nedostupný
-            const best = cloud || readLocal();
+            // Cloud má přednost. Když není dostupný, zobrazí se lokální data, ale do cloudu se NEZAPISUJE, dokud se nepodaří cloud přečíst.
+            const best = ok ? (cloud || readLocal()) : readLocal();
             if (best) window.applyLoadedData(best);
             loaded = true;
+            if (ok) await markCloudReady(cloud);
+            else if (!retryTimer) retryTimer = setInterval(retryCloud, 15000);
+        }
+        async function markCloudReady(cloud) {
+            lastWriteAt = cloud ? (cloud.updatedAt || 0) : 0;
+            bestClicks = Math.max(bestClicks, cloud ? (cloud.clicks || 0) : 0);
+            cloudReady = true;
+            if (retryTimer) { clearInterval(retryTimer); retryTimer = null; }
+            const isG = currentUser && !currentUser.isAnonymous;
+            setStatus(isG ? '🟢 ' + (currentUser.displayName || currentUser.email || 'Google účet') : '🟢 Cloud aktivní (anonymní účet)');
+            try { const bsnap = await getDocFromServer(bkDoc('bk_best')); if (bsnap.exists()) bkBestClicks = bsnap.data().clicks || 0; } catch (e) {}
+        }
+        async function retryCloud() {
+            if (cloudReady || !db || !currentUser || promptOpen) return;
+            try {
+                const snap = await getDocFromServer(saveDoc());
+                const cloud = snap.exists() ? snap.data() : null;
+                await reconcile(cloud);
+                await markCloudReady(cloud);
+            } catch (e) { /* zkusí se znovu za 15 s */ }
+        }
+        // Pokud je na cloudu výrazně víc postupu než tady (jiné zařízení), zeptá se, než cokoliv přepíše.
+        async function reconcile(cloud) {
+            if (!cloud) return;
+            if ((cloud.updatedAt || 0) !== lastWriteAt && (cloud.clicks || 0) > (window.gameClicks || 0) + 100) {
+                promptOpen = true;
+                try { await setDoc(bkDoc('bk_prev'), cloud); } catch (e) {}   // jistota: stav z cloudu se uloží do zálohy
+                const load = confirm('⚠️ Na cloudu je VÍC postupu než v tomto zařízení.\n\nCloud: ' + fmtN(cloud.coins) + ' coinů, ' + fmtN(cloud.clicks) + ' kliků\nTady: ' + fmtN(window.gameScore) + ' coinů, ' + fmtN(window.gameClicks) + ' kliků\n\nOK = načíst postup z cloudu (doporučeno)\nZrušit = přepsat cloud stavem z tohoto zařízení\n\n(Stav z cloudu se v každém případě uloží do zálohy – 🛟 Záchrana dat.)');
+                promptOpen = false;
+                if (load) { window.applyLoadedData(cloud, { noOffline: true, replace: true }); saveLocal(true); }
+            }
+            lastWriteAt = cloud.updatedAt || 0;
+        }
+        async function writeBackups(st) {
+            try {
+                const now = Date.now(), hr = Math.floor(now / 3600000);
+                if (st.clicks > bkBestClicks && now - lastBestAt > 300000) { lastBestAt = now; await setDoc(bkDoc('bk_best'), st); bkBestClicks = st.clicks; }
+                if (hr !== lastBkHour && !(st.clicks < bestClicks - 100)) { lastBkHour = hr; await setDoc(bkDoc('bk_h' + new Date(now).getHours()), st); }   // 24 hodinových záloh
+            } catch (e) { console.warn('Záloha:', e.code); }
         }
 
         window.saveGameProgress = async function (manual, force) {
             if (!loaded || (isEmptyState() && !force)) return;
             saveLocal(force);
             if (!db || !currentUser) return;
-            const s = buildState();
+            if (!cloudReady) { if (manual) toast('Cloud zatím není dostupný – uloženo jen v tomto zařízení.', 4000); return; }
+            if (promptOpen || saving) return;
+            saving = true;
             try {
-                await setDoc(saveDoc(), s, { merge: true });
-                await setDoc(lbDoc(), pubProfile(s), { merge: true });
+                if (!force && (manual || Date.now() - lastCloudCheck > 45000)) {
+                    lastCloudCheck = Date.now();
+                    const snap = await getDocFromServer(saveDoc());
+                    if (snap.exists()) await reconcile(snap.data());
+                }
+                const st = buildState();
+                await setDoc(saveDoc(), st);          // celý dokument se nahradí (bez slučování), aby se nemíchaly staré a nové položky
+                await setDoc(lbDoc(), pubProfile(st), { merge: true });
+                lastWriteAt = st.updatedAt;
+                writeBackups(st);
                 if (manual) {
                     const btn = $('save-score-btn');
                     btn.textContent = '✅ Uloženo do cloudu!';
@@ -388,8 +451,79 @@
             } catch (err) {
                 console.error('Ukládání:', err);
                 setStatus('⚠️ Uložení selhalo (' + err.code + ')');
-            }
+            } finally { saving = false; }
         };
+
+        // ---------- 🛟 ZÁCHRANA DAT ----------
+        window.scanBackups = async () => {
+            const el = $('rc-list'); if (!el) return;
+            el.innerHTML = '<div class="text-xs text-slate-400">Hledám zálohy…</div>';
+            const list = [];
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (!k || !/^goon_(game_save|best|pre)(_|$)/.test(k)) continue;
+                    try {
+                        const d = JSON.parse(localStorage.getItem(k));
+                        if (!d || typeof d !== 'object' || !('coins' in d)) continue;
+                        const who = k.replace(/^goon_(game_save|best|pre)_?/, '').slice(0, 6) || 'starý formát';
+                        list.push({ label: (k.indexOf('goon_best_') === 0 ? 'Toto zařízení – nejlepší postup' : k.indexOf('goon_pre_') === 0 ? 'Toto zařízení – stav před obnovením' : 'Toto zařízení – poslední uložení') + ' (účet ' + who + ')', data: d });
+                    } catch (e) {}
+                }
+            } catch (e) {}
+            if (db && currentUser) {
+                const ids = [['current', 'Cloud – aktuální stav'], ['bk_best', 'Cloud – nejlepší postup'], ['bk_prev', 'Cloud – stav před přepsáním']].concat(Array.from({ length: 24 }, (_, h) => ['bk_h' + h, 'Cloud – hodinová záloha (' + h + ':00)']));
+                const res = await Promise.allSettled(ids.map(i => getDocFromServer(bkDoc(i[0]))));
+                res.forEach((r, i) => { if (r.status === 'fulfilled' && r.value.exists()) list.push({ label: ids[i][1], data: r.value.data() }); });
+            }
+            // odstranit duplicity (stejný stav z více zdrojů) a seřadit: nejvíc postupu nahoře
+            const seen = {}, uniq = [];
+            list.forEach(it => { const key = [it.data.updatedAt, it.data.coins, it.data.clicks].join('-'); if (seen[key]) seen[key].label += ' = ' + it.label; else { seen[key] = it; uniq.push(it); } });
+            uniq.sort((a, b) => (b.data.clicks || 0) - (a.data.clicks || 0) || (b.data.updatedAt || 0) - (a.data.updatedAt || 0));
+            window.__rc = uniq;
+            el.innerHTML = uniq.length ? uniq.map((it, i) => '<div class="bg-slate-800 rounded-lg px-3 py-2 text-xs"><div class="flex justify-between gap-2 items-start"><b class="break-words">' + (i === 0 ? '⭐ ' : '') + escapeHtml(it.label) + '</b>' +
+                '<button onclick="restoreBackup(' + i + ')" class="bg-green-600 hover:bg-green-500 px-2.5 py-1 rounded font-bold shrink-0">Obnovit</button></div>' +
+                '<div class="text-slate-400 mt-0.5">' + (it.data.updatedAt ? new Date(it.data.updatedAt).toLocaleString('cs-CZ') : 'neznámý čas') + ' · ' + escapeHtml(it.data.nick || '') + '</div>' +
+                '<div class="text-slate-300">💰 ' + fmtN(it.data.coins) + ' · 👆 ' + fmtN(it.data.clicks) + ' · ⬆️ ' + upCount(it.data) + ' upgradů · 🏆 ' + limCount(it.data) + ' limitek</div></div>').join('')
+                : '<div class="text-xs text-slate-400">Žádné zálohy nenalezeny. Zkus to na zařízení, kde jsi hrál dřív.</div>';
+        };
+        async function applyRestore(d) {
+            try { localStorage.setItem('goon_pre_' + (currentUser ? currentUser.uid : 'local'), JSON.stringify(buildState())); } catch (e) {}   // aktuální stav se nejdřív schová
+            if (db && currentUser && cloudReady) { try { await setDoc(bkDoc('bk_prev'), buildState()); } catch (e) {} }
+            window.applyLoadedData(d, { noOffline: true, replace: true });
+            bestClicks = Math.max(0, Number(d.clicks) || 0);
+            await window.saveGameProgress(true, true);
+            toast('✅ Obnoveno: ' + fmtN(d.coins) + ' coinů, ' + fmtN(d.clicks) + ' kliků', 6000);
+            if (modalName === 'recovery') openModal('recovery');
+        }
+        window.restoreBackup = async (i) => {
+            const it = (window.__rc || [])[i]; if (!it) return;
+            if (!confirm('Obnovit tento stav?\n\n' + it.label + '\n💰 ' + fmtN(it.data.coins) + ' · 👆 ' + fmtN(it.data.clicks) + '\n\nSoučasný stav se předtím uloží do zálohy („stav před obnovením“).')) return;
+            await applyRestore(it.data);
+        };
+        window.exportSave = () => {
+            const d = new Date(), blob = new Blob([JSON.stringify({ app: 'gooning-sim', v: 1, exportedAt: d.toISOString(), data: buildState() }, null, 1)], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'goon-save-' + d.toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.json';
+            document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+        };
+        window.importSave = (inp) => {
+            const f = inp.files && inp.files[0]; if (!f) return;
+            if (f.size > 500000) { toast('Soubor je příliš velký.', 3000); inp.value = ''; return; }
+            const rd = new FileReader();
+            rd.onload = async () => {
+                try {
+                    const j = JSON.parse(rd.result), d = j && j.data ? j.data : j;
+                    if (!d || !isFinite(Number(d.coins)) || !isFinite(Number(d.clicks))) throw new Error('bad');
+                    if (!confirm('Nahrát postup ze souboru?\n💰 ' + fmtN(d.coins) + ' · 👆 ' + fmtN(d.clicks) + '\n\nSoučasný stav se předtím uloží do zálohy.')) { inp.value = ''; return; }
+                    await applyRestore(d);
+                } catch (e) { toast('Soubor se nepodařilo načíst.', 3500); }
+                inp.value = '';
+            };
+            rd.readAsText(f);
+        };
+        function confirmSwitch() {
+            return confirm('Tenhle Google účet už má uložený vlastní postup.\n\nPřepnutím se načte JEHO postup, ne ten z tohoto zařízení (' + fmtN(window.gameScore) + ' coinů, ' + fmtN(window.gameClicks) + ' kliků).\nPostup z tohoto zařízení zůstane uložený v anonymním účtu a půjde vrátit přes 🛟 Záchrana dat (nebo ho předtím exportuj do souboru).\n\nPřepnout na Google účet?');
+        }
 
         let loginBusy = false;
         window.googleLogin = async function () {
@@ -408,6 +542,7 @@
                 if (err.code === 'auth/credential-already-in-use' || err.code === 'auth/email-already-in-use') {
                     // Google účet už existuje -> přihlásit se do něj bez druhého popupu
                     const cred = GoogleAuthProvider.credentialFromError(err);
+                    if (!confirmSwitch()) return;
                     try {
                         await signInWithCredential(auth, cred);
                         location.reload();
@@ -629,6 +764,13 @@
                     '<button onclick="spinWheel()" class="w-full bg-purple-600 hover:bg-purple-500 py-2.5 rounded-lg font-bold">Zatočit (' + n0(W.cost) + ')</button>' +
                     '<div class="flex items-center gap-2 mt-2"><button id="auto-btn" onclick="toggleAutoSpin()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-sm font-bold">🔁 Auto spin</button><label class="text-xs flex items-center gap-1 whitespace-nowrap"><input id="auto-stop" type="checkbox" checked> stop po výhře</label></div>' +
                     '<div class="mt-3 text-[11px] text-slate-400 space-y-0.5">' + W.prizes.map(x => '<div class="flex justify-between"><span>' + label(x) + '</span><span>' + (x.w / tot * 100).toFixed(1) + ' %</span></div>').join('') + '</div>';
+            } else if (name === 'recovery') {
+                title = '🛟 Záchrana dat';
+                B.innerHTML = '<div class="text-xs text-slate-400 mb-3">Hra si automaticky ukládá zálohy: <b>nejlepší postup</b> a <b>24 hodinových záloh</b> v cloudu a poslední i nejlepší stav v tomto zařízení. Tady je můžeš najít a vrátit.</div>' +
+                    '<div class="bg-slate-800 rounded-xl p-3 mb-3 text-xs">Teď ve hře: <b class="text-amber-300">💰 ' + fmtN(window.gameScore) + ' · 👆 ' + fmtN(window.gameClicks) + '</b></div>' +
+                    '<button onclick="scanBackups()" class="w-full bg-sky-600 hover:bg-sky-500 py-2.5 rounded-lg font-bold mb-2">🔍 Najít zálohy (cloud + toto zařízení)</button><div id="rc-list" class="space-y-2 mb-3"></div>' +
+                    '<div class="text-xs text-slate-400 mb-1">Ruční přenos mezi zařízeními:</div><div class="grid grid-cols-2 gap-2"><button onclick="exportSave()" class="bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-xs font-bold">📤 Exportovat do souboru</button>' +
+                    '<label class="bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-xs font-bold text-center cursor-pointer">📥 Nahrát ze souboru<input type="file" accept=".json,application/json" onchange="importSave(this)" class="hidden"></label></div>';
             } else if (name === 'settings') {
                 const m = meta();
                 const sel = (id, opts, cur) => '<select id="' + id + '" class="' + inputCls + '">' + opts.map(o => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>';
@@ -1002,7 +1144,7 @@
 
 async function wipeOwnAccount() {
             api().wipe(); $('player-nick').value = '';
-            try { localStorage.removeItem(localKey()); } catch (e) {}
+            try { localStorage.removeItem(localKey()); localStorage.removeItem('goon_best_' + currentUser.uid); localStorage.removeItem('goon_pre_' + currentUser.uid); localBestClicks = 0; } catch (e) {}
             toast('🗑 Tvůj účet byl smazán adminem. Můžeš začít znovu.', 10000);
             await Promise.allSettled([deleteDoc(lbDoc()), deleteDoc(saveDoc()), deleteDoc(doc(col('penalties'), currentUser.uid))]);
         }
@@ -1010,7 +1152,7 @@ async function wipeOwnAccount() {
         function applyPenalty(p) {
             if (!loaded) { setTimeout(() => applyPenalty(p), 700); return; }
             if (p.ts === lastPen) return; lastPen = p.ts;
-            api().penalty(p);
+            api().penalty(p); if (p.reset) bestClicks = 0;
             if (p.removeImage) { meta().img = ''; toast('⚠️ Admin odstranil tvůj profilový obrázek.', 6000); window.saveGameProgress(false, true).then(() => deleteDoc(doc(col('penalties'), currentUser.uid)).catch(() => {})); return; }
             if (p.delete) { wipeOwnAccount(); return; }
             toast('⚠️ Admin ti upravil účet (podezření na autoclicker).', 8000);
@@ -1120,6 +1262,7 @@ window.renderAdminPlayers = () => {
                         deleteDoc(doc(db, 'artifacts', APP_ID, 'users', uid, 'saves', 'clock')),
                         deleteDoc(doc(col('reports'), uid))
                     ]);
+                    await Promise.allSettled(['bk_best', 'bk_prev'].concat(Array.from({ length: 24 }, (_, h) => 'bk_h' + h)).map(id => deleteDoc(doc(db, 'artifacts', APP_ID, 'users', uid, 'saves', id))));
                     const names = ['žebříček', 'uložená hra', 'hodiny', 'report'];
                     r.forEach(x => { if (x.status === 'rejected') console.error('Mazání selhalo:', x.reason); });
                     const failed = r.map((x, i) => x.status === 'rejected' ? names[i] + ' (' + ((x.reason && x.reason.code) || '?') + ')' : null).filter(Boolean);
@@ -1224,10 +1367,11 @@ window.renderAdminPlayers = () => {
             window.gameUpgradesState = upgrades.map(u => ({ count: u.count, currentPrice: u.currentPrice }));
         }
 
-        window.applyLoadedData = function (data) {
+        window.applyLoadedData = function (data, opts) {
             if (!data) return;
             score = Number(data.coins) || 0;
             totalClicks = Number(data.clicks) || 0;
+            if (opts && opts.replace) { upgrades.forEach(u => { u.count = 0; u.currentPrice = u.basePrice; }); limited = { owned: {}, slot: 0, slotBought: 0 }; }
 
             if (data.nick && data.nick !== 'Anonym') {
                 const nickInput = document.getElementById('player-nick');
@@ -1255,7 +1399,7 @@ window.renderAdminPlayers = () => {
             limitedDrops.forEach(d => { const c = limited.owned[d.id] || 0; totalCps += c * d.cps; clickPower += c * d.clickPower; });
 
             // Offline výdělek (1 % CPS za sekundu, max 24 h)
-            if (data.updatedAt && totalCps > 0) {
+            if (data.updatedAt && totalCps > 0 && !(opts && opts.noOffline)) {
                 const secondsOffline = Math.floor((Date.now() - data.updatedAt) / 1000);
                 if (secondsOffline >= 30) {
                     const secs = Math.min(secondsOffline, 86400);
