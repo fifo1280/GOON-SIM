@@ -9,7 +9,7 @@
         // Zástupné funkce: kliknutí během načítání se zapamatuje a provede, jakmile je hra připravená.
         (function () {
             var q = []; window.__q = q;
-            ['openModal','azcloseModal','openProfile','spinWheel','toggleAutoSpin','setTheme','setClickEmoji','saveProfile','uploadAvatar','removeAvatar','adminAct','challenge','sendCoins','duelClick','closeDuel'].forEach(function (n) {
+            ['openModal','closeModal','openProfile','spinWheel','toggleAutoSpin','setTheme','setClickEmoji','saveProfile','uploadAvatar','removeAvatar','adminAct','challenge','sendCoins','duelClick','closeDuel'].forEach(function (n) {
                 window[n] = function () { q.push([n, [].slice.call(arguments)]); var b = document.getElementById('status-indicator'); if (b) b.textContent = '⏳ Načítám hru…'; };
             });
         })();
@@ -99,6 +99,25 @@
         .ctab.on { border-color: rgb(var(--a4)); background: rgb(var(--a9)); color: rgb(var(--a3)); }
         .cbtn { padding: .6rem .5rem; border-radius: .7rem; font-weight: 800; font-size: .8rem; color: #fff; transition: transform .1s, filter .1s; }
         .cbtn:active { transform: scale(.96); } .cbtn:disabled { opacity: .4; }
+        #duel-ov { touch-action: none; -webkit-user-select: none; user-select: none; cursor: pointer; }
+        .duel-tap { position: fixed; z-index: 310; pointer-events: none; font-size: 2rem; transform: translate(-50%,-50%); animation: duelTap .55s ease-out forwards; }
+        @keyframes duelTap { 0% { opacity: 1; transform: translate(-50%,-50%) scale(.6); } 100% { opacity: 0; transform: translate(-50%,-150%) scale(1.5); } }
+        .duel-pop { animation: duelPop .12s ease-out; }
+        @keyframes duelPop { 0% { transform: scale(.78) rotate(-4deg); } 100% { transform: scale(1); } }
+        /* sex shop */
+        .shop-scene { position: relative; border-radius: 1rem; overflow: hidden; border: 1px solid rgb(var(--b2)); background: linear-gradient(180deg, rgb(var(--c2)), rgb(var(--c1))); margin-bottom: .75rem; }
+        .awning { height: 26px; background: repeating-linear-gradient(90deg, rgb(var(--a5)) 0 26px, #fdf2f8 26px 52px); border-radius: 0 0 40% 40% / 0 0 100% 100%; box-shadow: 0 6px 12px rgba(0,0,0,.35); }
+        .shop-sign { text-align: center; margin: .6rem auto .2rem; width: max-content; max-width: 92%; padding: .15rem .9rem; border: 2px solid rgb(var(--a4)); border-radius: .6rem; font-weight: 900; letter-spacing: .18em; font-size: 1.1rem; color: rgb(var(--a3)); text-shadow: 0 0 6px rgb(var(--a5)), 0 0 16px rgb(var(--a5)); box-shadow: 0 0 14px rgb(var(--a5) / .55), inset 0 0 10px rgb(var(--a5) / .35); animation: signFlick 4s infinite; }
+        @keyframes signFlick { 0%,92%,100% { opacity: 1; } 94% { opacity: .55; } 96% { opacity: 1; } 97% { opacity: .65; } }
+        .shelf { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; padding: .25rem .6rem 0; font-size: 1.15rem; text-align: center; border-bottom: 5px solid rgb(var(--b2)); }
+        .shelf span { transition: opacity .4s, filter .4s; }
+        .walk { height: 1.7rem; position: relative; overflow: hidden; font-size: 1.2rem; opacity: 0; transition: opacity .4s; }
+        .walk.on { opacity: 1; }
+        .walk span { position: absolute; bottom: 0; animation: walkBy 9s linear infinite; }
+        @keyframes walkBy { from { left: -10%; } to { left: 105%; } }
+        .boost-row { display: flex; align-items: center; gap: .65rem; background: rgb(var(--c2) / .7); border: 1px solid rgb(var(--b1)); border-radius: .85rem; padding: .6rem; margin-bottom: .5rem; }
+        .boost-row.act { border-color: rgb(var(--a4)); box-shadow: 0 0 0 1px rgb(var(--a4) / .5) inset; }
+        .bchip { display: inline-flex; gap: .25rem; align-items: center; font-size: .7rem; font-weight: 800; padding: .15rem .55rem; border-radius: 9999px; background: rgb(var(--a9)); border: 1px solid rgb(var(--a5) / .6); color: rgb(var(--a3)); }
         :root[data-theme="light"] {
             --bg:244 246 251; --c1:255 255 255; --c2:226 232 240; --b1:203 213 225; --b2:148 163 184; --t5:120 133 154; --t4:90 104 128; --t3:55 68 92; --t1:15 23 42;
             --a3:161 98 7; --a4:180 83 9; --a5:245 158 11; --a6:217 119 6; --a9:254 243 199;
@@ -172,6 +191,7 @@
         <button class="nav-btn" style="--acc:#ef4444" onclick="openModal('duel')"><span class="ico">⚔️</span><span>Souboj</span></button>
         <button class="nav-btn" style="--acc:#a855f7" onclick="openModal('wheel')"><span class="ico">🎡</span><span>Kolo štěstí</span></button>
         <button class="nav-btn" style="--acc:#f472b6" onclick="openModal('shop')"><span class="ico">🏪</span><span>Sex shop</span></button>
+        <button class="nav-btn" style="--acc:#eab308" onclick="openModal('boosts')"><span class="ico">⚡</span><span>Boosty</span></button>
         <button class="nav-btn" style="--acc:#22c55e" onclick="openModal('casino')"><span class="ico">🎰</span><span>Kasino</span></button>
         <button class="nav-btn" style="--acc:#38bdf8" onclick="openModal('profiles')"><span class="ico">👤</span><span>Profily</span></button>
         <button class="nav-btn" style="--acc:#94a3b8" onclick="openModal('settings')"><span class="ico">⚙️</span><span>Nastavení</span></button>
@@ -197,7 +217,8 @@
             <div><div class="text-xs flex justify-between mb-1"><span>Ty</span><span id="duel-me-c"></span></div><div class="h-3 bg-slate-800 rounded"><div id="duel-me-b" class="h-3 bg-amber-400 rounded" style="width:0"></div></div></div>
             <div><div class="text-xs flex justify-between mb-1"><span id="duel-opp-n"></span><span id="duel-opp-c"></span></div><div class="h-3 bg-slate-800 rounded"><div id="duel-opp-b" class="h-3 bg-red-500 rounded" style="width:0"></div></div></div>
         </div>
-        <button id="duel-btn" onclick="duelClick(event)" class="click-emoji text-7xl focus:outline-none">🍑</button>
+        <button id="duel-btn" class="click-emoji text-7xl focus:outline-none">🍑</button>
+        <div class="text-[11px] text-slate-500 mt-2">Klikej kamkoliv na obrazovku!</div>
         <div id="duel-msg" class="mt-4 text-sm text-slate-300"></div>
         <button id="duel-close" onclick="closeDuel()" class="hidden mt-4 bg-slate-700 px-4 py-2 rounded-lg text-sm">Zavřít</button>
     </div>
@@ -214,6 +235,7 @@
                     <span class="chip text-amber-300" id="power-val">+1 / klik</span>
                     <span class="chip text-slate-300">👆 <span id="clicks-val">0</span></span>
                 </div>
+                <div id="boost-chips" class="flex flex-wrap justify-center gap-1.5 mt-2"></div>
             </div>
             <div id="click-halo" class="rounded-full p-6 sm:p-8 my-3">
                 <button id="main-click-btn" class="click-emoji text-8xl sm:text-9xl block focus:outline-none cursor-pointer">🗿</button>
@@ -793,6 +815,8 @@
                     '<div class="mt-3 text-[11px] text-slate-400 space-y-0.5">' + Object.keys(WT).map(k => '<div class="flex justify-between"><span>' + WT[k].e + ' ' + WT[k].n + '</span><span>' + (WT[k].w / tot * 100).toFixed(1) + ' %</span></div>').join('') + '</div>' +
                     '<div class="text-[10px] text-slate-500 mt-2">🔥 OP limitky v kole: ' + opNames + '</div>';
                 wheelInfo();
+            } else if (name === 'boosts') {
+                title = '⚡ Boosty'; B.innerHTML = window.boostHTML ? window.boostHTML() : ''; if (window.boostLive) window.boostLive();
             } else if (name === 'shop') {
                 title = '🏪 Sex shop'; B.innerHTML = window.shopHTML ? window.shopHTML() : ''; if (window.shopLive) window.shopLive();
             } else if (name === 'casino') {
@@ -1223,6 +1247,16 @@
             } else if (now - lastProg > 350) { lastProg = now; updateDoc(ref, { ['progress.' + currentUser.uid]: duelClicks }).catch(() => {}); }
         };
 
+        // klikání přes celou obrazovku souboje
+        $('duel-ov').addEventListener('pointerdown', (e) => {
+            if (e.target.closest('#duel-close') || $('duel-btn').classList.contains('hidden')) return;
+            e.preventDefault();
+            const t = document.createElement('div'); t.className = 'duel-tap'; t.textContent = meta().emoji || '🍑'; t.style.left = e.clientX + 'px'; t.style.top = e.clientY + 'px';
+            $('duel-ov').appendChild(t); setTimeout(() => t.remove(), 600);
+            const b = $('duel-btn'); b.classList.remove('duel-pop'); void b.offsetWidth; b.classList.add('duel-pop');
+            window.duelClick(e);
+        });
+
         async function settleDuel(d) {
             const me = currentUser.uid, ref = doc(col('duels'), d.id);
             if ((d.applied || {})[me]) return;
@@ -1508,7 +1542,7 @@ window.renderAdminPlayers = () => {
         let roleBoost = { cps: 1, click: 1 };
         let tmpBoost = { m: 1, until: 0 };
         const tmpM = () => (tmpBoost.until > Date.now() ? tmpBoost.m : 1);
-        const effCps = () => totalCps * roleBoost.cps * tmpM(), effClick = () => clickPower * roleBoost.click * tmpM();
+        const effCps = () => totalCps * roleBoost.cps * tmpM() * bM('earn'), effClick = () => clickPower * roleBoost.click * tmpM() * bM('earn') * bM('click');
         const meta = { fx: 'none', color2: '#ec4899', banner: '#a855f7', frame: 'none', theme: (function () { try { return localStorage.getItem('goon_theme') || 'noc'; } catch (e) { return 'noc'; } })(), avatar: '🗿', font: 'sans', color: '#fbbf24', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, joined: Date.now() };
 
         // ===== KOLO ŠTĚSTÍ =====
@@ -1536,7 +1570,7 @@ window.renderAdminPlayers = () => {
             if (!data) return;
             score = Number(data.coins) || 0;
             totalClicks = Number(data.clicks) || 0;
-            if (opts && opts.replace) { upgrades.forEach(u => { u.count = 0; u.currentPrice = u.basePrice; }); limited = { owned: {}, slot: 0, slotBought: 0 }; meta.shop = null; meta.pity = 0; meta.freeSpins = 0; meta.gamble = null; }
+            if (opts && opts.replace) { upgrades.forEach(u => { u.count = 0; u.currentPrice = u.basePrice; }); limited = { owned: {}, slot: 0, slotBought: 0 }; meta.shop = null; meta.pity = 0; meta.freeSpins = 0; meta.gamble = null; meta.boosts = null; }
 
             if (data.nick && data.nick !== 'Anonym') {
                 const nickInput = document.getElementById('player-nick');
@@ -1568,7 +1602,9 @@ window.renderAdminPlayers = () => {
                 const secondsOffline = Math.floor((Date.now() - data.updatedAt) / 1000);
                 if (secondsOffline >= 30) {
                     const secs = Math.min(secondsOffline, 86400);
-                    const earned = Math.floor(secs * totalCps * 0.01);
+                    const now2 = Date.now(), ob = meta.boosts && meta.boosts.offl;
+                    const bs = ob ? Math.max(0, Math.min(now2, ob.until) - Math.max(now2 - secs * 1000, ob.start)) / 1000 : 0;
+                    const earned = Math.floor((secs - bs) * totalCps * 0.01 + bs * totalCps * 0.01 * (ob ? ob.m : 1));
                     if (earned > 0) {
                         score += earned;
                         setTimeout(() => {
@@ -1721,10 +1757,11 @@ window.renderAdminPlayers = () => {
         });
 
         setInterval(() => {
-            shopTick();
+            shopTick(); boostTick();
             if (totalCps > 0) score += effCps();
-            syncGlobalState(); updateUI();
+            syncGlobalState(); updateUI(); renderBoostChips();
             if (document.getElementById('shop-live')) window.shopLive();
+            if (document.getElementById('boost-live')) window.boostLive();
         }, 1000);
 
         // ===== OBROVSKÁ BÍLÁ EXPLOZE (konec souboje) =====
@@ -1762,13 +1799,13 @@ window.renderAdminPlayers = () => {
             giveDrop(id) { limited.owned[id] = (limited.owned[id] || 0) + 1; recalcTotals(); syncGlobalState(); updateUI(); },
             wipe() {
                 this.penalty({ reset: true });
-                Object.assign(meta, { avatar: '🗿', font: 'sans', fx: 'none', color: '#fbbf24', color2: '#ec4899', banner: '#a855f7', frame: 'none', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, bestKps: 0, bestTime: 0, img: '', joined: Date.now(), shop: null, pity: 0, freeSpins: 0, gamble: null });
+                Object.assign(meta, { avatar: '🗿', font: 'sans', fx: 'none', color: '#fbbf24', color2: '#ec4899', banner: '#a855f7', frame: 'none', bio: '', emoji: config.emoji, wins: 0, losses: 0, spins: 0, jackpots: 0, bestKps: 0, bestTime: 0, img: '', joined: Date.now(), shop: null, pity: 0, freeSpins: 0, gamble: null, boosts: null });
                 applyEmoji(); syncGlobalState(); updateUI();
             },
             penalty(p) {
                 const c = Math.min(100, Math.max(0, Number(p.coinsPct) || 0)), u = Math.min(100, Math.max(0, Number(p.upgradesPct) || 0));
                 if (p.reset) {
-                    score = 0; totalClicks = 0; upgrades.forEach(x => { x.count = 0; x.currentPrice = x.basePrice; }); limited = { owned: {}, slot: 0, slotBought: 0 }; meta.shop = null; meta.pity = 0; meta.freeSpins = 0;
+                    score = 0; totalClicks = 0; upgrades.forEach(x => { x.count = 0; x.currentPrice = x.basePrice; }); limited = { owned: {}, slot: 0, slotBought: 0 }; meta.shop = null; meta.pity = 0; meta.freeSpins = 0; meta.boosts = null;
                 } else {
                     score = Math.floor(score * (1 - c / 100));
                     upgrades.forEach(x => { x.count -= Math.round(x.count * u / 100); x.currentPrice = Math.ceil(x.basePrice * Math.pow(1.15, x.count)); });
@@ -1913,7 +1950,7 @@ window.renderAdminPlayers = () => {
         const shopMult = (s, l) => SHOP.baseMult + 0.25 * (l === undefined ? s.mg : l);
         const shopUpPrice = (k, s) => Math.ceil(SHOP.up[k].base * Math.pow(SHOP.growth, s[k]));
         function shopPerSec(s) {
-            const n = Math.min(s.stock, shopRate(s)), inc = n * SHOP.unitCost * shopMult(s) * roleBoost.cps * tmpM();
+            const n = Math.min(s.stock, shopRate(s)), inc = n * SHOP.unitCost * shopMult(s) * roleBoost.cps * tmpM() * bM('shopx');
             return { n: n, inc: inc, profit: inc - n * SHOP.unitCost };
         }
         function shopTick() {
@@ -1922,7 +1959,7 @@ window.renderAdminPlayers = () => {
             if (dt <= 0 || !(s.stock > 0)) return;
             dt = Math.min(dt, 86400);
             const n = Math.min(s.stock, shopRate(s) * dt); if (n <= 0) return;
-            const rev = n * SHOP.unitCost * shopMult(s) * roleBoost.cps * tmpM();
+            const rev = n * SHOP.unitCost * shopMult(s) * roleBoost.cps * tmpM() * bM('shopx');
             s.stock -= n; s.sold = (s.sold || 0) + n; s.earned = (s.earned || 0) + rev; score += rev;
             if (dt > 20) showToast('🏪 Sex shop vydělal ' + abbr(rev) + ' během tvé nepřítomnosti.', 5000, '#15803d');
         }
@@ -1952,29 +1989,34 @@ window.renderAdminPlayers = () => {
             if (score < p) { showToast('Chybí ti ' + abbr(p - score) + '.', 2500); return; }
             shopTick(); score -= p; s[k]++; shopAfter();
         };
+        const SHOP_ITEMS = ['🧴', '💜', '🔗', '👙', '🍆', '🪄', '🔮', '🧸', '💋', '🎀'];
+        const shopTitle = (s) => { const l = s.sl + s.st + s.mg; return l >= 36 ? '👑 Král sex shopů' : l >= 27 ? '🏰 Impérium rozkoše' : l >= 15 ? '🏬 Velký obchoďák' : l >= 6 ? '🏪 Oblíbený obchod' : '🛍️ Malý butik'; };
         window.shopHTML = function () {
             const s = shopS(), u = SHOP.unitCost;
-            const st = (l, v) => '<div class="bg-slate-800 rounded-lg p-2"><div class="text-[10px] text-slate-400">' + l + '</div><div class="text-sm font-bold text-amber-300">' + v + '</div></div>';
+            const st = (l, v, ic) => '<div class="bg-slate-800 rounded-xl p-2.5 border border-slate-700/70"><div class="text-[10px] text-slate-400">' + (ic || '') + ' ' + l + '</div><div class="text-sm font-black text-amber-300">' + v + '</div></div>';
+            const scene = function (inner) {
+                let sh = ''; for (let r = 0; r < 2; r++) { sh += '<div class="shelf">'; for (let i = 0; i < 10; i++) sh += '<span id="sh' + (r * 10 + i) + '">' + SHOP_ITEMS[(i + r * 3) % 10] + '</span>'; sh += '</div>'; }
+                return '<div class="shop-scene"><div class="awning"></div><div class="shop-sign">SEX SHOP</div>' + inner + sh + '<div id="shop-walk" class="walk"><span style="animation-delay:0s">🚶‍♂️</span><span style="animation-delay:-3s">🚶‍♀️</span><span style="animation-delay:-6s">🕺</span></div></div>';
+            };
             if (!s) {
-                return '<div class="text-center"><div class="text-6xl my-2">🏪</div><div class="font-black text-lg mb-1">Vlastní Sex shop</div>' +
-                    '<div class="text-xs text-slate-400 mb-3">Koupíš si obchod. Zboží se prodává samo, ale musíš ho <b class="text-slate-200">dokupovat</b> – když sklad dojde, obchod nevydělává. Vylepšuj sklad, prodavače a marži. Vydělává víc než upgrady a tržby se počítají do tvých coinů i žebříčku (🏪 u jména).</div>' +
-                    '<div class="grid grid-cols-2 gap-2 mb-3 text-left">' + st('Nákup zboží', abbr(u) + ' / ks') + st('Prodej za', abbr(u * SHOP.baseMult) + ' / ks') + st('Sklad (start)', abbr(SHOP.baseCap) + ' ks') + st('Prodej (start)', SHOP.baseRate + ' ks / s') + '</div>' +
-                    '<button onclick="shopBuy()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl active:scale-95 transition">Koupit za ' + abbr(SHOP.price) + '</button>' +
-                    (score < SHOP.price ? '<div class="text-[11px] text-red-400 mt-2">Chybí ti ještě ' + abbr(SHOP.price - score) + '</div>' : '') + '</div>';
+                return scene('<div class="text-center text-[11px] text-slate-400 pb-1">Zavřeno – hledá se majitel</div>') +
+                    '<div class="text-xs text-slate-400 mb-3 text-center">Zboží se prodává samo, ale musíš ho <b class="text-slate-200">dokupovat</b> – když sklad dojde, obchod nevydělává. Vylepšuj sklad, prodavače a marži. Vydělává víc než upgrady a tržby se počítají do tvých coinů i žebříčku (🏪 u jména).</div>' +
+                    '<div class="grid grid-cols-2 gap-2 mb-3">' + st('Nákup zboží', abbr(u) + ' / ks', '🛒') + st('Prodej za', abbr(u * SHOP.baseMult) + ' / ks', '💸') + st('Sklad (start)', abbr(SHOP.baseCap) + ' ks', '📦') + st('Prodej (start)', SHOP.baseRate + ' ks / s', '⚡') + '</div>' +
+                    '<button onclick="shopBuy()" class="w-full bg-gradient-to-r from-pink-500 to-amber-400 text-slate-950 font-black py-3 rounded-xl active:scale-95 transition">Koupit za ' + abbr(SHOP.price) + '</button>' +
+                    (score < SHOP.price ? '<div class="text-[11px] text-red-400 mt-2 text-center">Chybí ti ještě ' + abbr(SHOP.price - score) + '</div>' : '');
             }
-            const cap = shopCap(s);
             const ups = ['sl', 'st', 'mg'].map(function (k) {
                 const l = s[k], max = l >= SHOP.maxLvl, p = shopUpPrice(k, s);
                 const eff = k === 'sl' ? 'Sklad ' + abbr(shopCap(s)) + (max ? '' : ' → ' + abbr(shopCap(s, l + 1))) + ' ks'
                     : k === 'st' ? 'Prodej ' + abbr(shopRate(s)) + (max ? '' : ' → ' + abbr(shopRate(s, l + 1))) + ' ks/s'
                     : 'Tržba ' + shopMult(s).toFixed(2).replace('.', ',') + '×' + (max ? '' : ' → ' + shopMult(s, l + 1).toFixed(2).replace('.', ',') + '×') + ' z kusu';
-                return '<div class="flex items-center gap-2 bg-slate-800 rounded-xl p-2.5"><div class="flex-1 min-w-0"><div class="text-sm font-bold">' + SHOP.up[k].name + ' <span class="text-[10px] text-slate-400">úr. ' + l + '/' + SHOP.maxLvl + '</span></div><div class="text-[11px] text-purple-300">' + eff + '</div></div>' +
+                return '<div class="flex items-center gap-2 bg-slate-800 rounded-xl p-2.5 border border-slate-700/70"><div class="flex-1 min-w-0"><div class="text-sm font-bold">' + SHOP.up[k].name + ' <span class="text-[10px] text-pink-300 tracking-tighter">' + '▰'.repeat(l) + '<span class="text-slate-600">' + '▱'.repeat(SHOP.maxLvl - l) + '</span></span></div><div class="text-[11px] text-purple-300">' + eff + '</div></div>' +
                     (max ? '<div class="text-xs font-black text-green-400">MAX</div>' : '<button onclick="shopUpgrade(\'' + k + '\')" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-black px-3 py-2 rounded-lg active:scale-95">' + abbr(p) + '</button>') + '</div>';
             }).join('');
-            return '<div id="shop-live">' +
+            return '<div id="shop-live">' + scene('<div class="text-center text-[11px] font-bold text-pink-200 pb-1">' + shopTitle(s) + '</div>') +
                 '<div class="flex justify-between text-xs mb-1"><span>📦 Sklad</span><span id="shop-stock-txt" class="font-mono font-bold"></span></div><div class="pbar mb-1"><div id="shop-stock-bar" style="width:0"></div></div>' +
                 '<div id="shop-warn" class="text-[11px] text-red-400 font-bold mb-1 hidden">⚠️ Došlo zboží! Obchod nevydělává – dokup ho.</div>' +
-                '<div class="grid grid-cols-2 gap-2 my-3">' + st('Tržba / s', '<span id="shop-income"></span>') + st('Čistý zisk / s', '<span id="shop-profit"></span>') + st('Celkem vyděláno', '<span id="shop-earned"></span>') + st('Prodáno kusů', '<span id="shop-sold"></span>') + '</div>' +
+                '<div class="grid grid-cols-2 gap-2 my-3">' + st('Tržba / s', '<span id="shop-income"></span>', '💰') + st('Čistý zisk / s', '<span id="shop-profit"></span>', '📈') + st('Celkem vyděláno', '<span id="shop-earned"></span>', '🏆') + st('Prodáno kusů', '<span id="shop-sold"></span>', '🛍️') + '</div>' +
                 '<div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dokoupit zboží (' + abbr(u) + ' / ks)</div>' +
                 '<div class="grid grid-cols-3 gap-2 mb-1"><button onclick="shopRestock(0.1)" class="cbtn bg-sky-600">+10 %</button><button onclick="shopRestock(0.25)" class="cbtn bg-sky-600">+25 %</button><button onclick="shopRestock(1)" class="cbtn bg-green-600">Na plno</button></div>' +
                 '<div class="text-[10px] text-slate-500 mb-3">Na plno: <span id="shop-full-cost"></span></div>' +
@@ -1989,6 +2031,74 @@ window.renderAdminPlayers = () => {
             e('shop-income').textContent = abbr(ps.inc); e('shop-profit').textContent = abbr(ps.profit);
             e('shop-earned').textContent = abbr(s.earned || 0); e('shop-sold').textContent = abbr(Math.floor(s.sold || 0));
             e('shop-full-cost').textContent = abbr(room * SHOP.unitCost) + (score < room * SHOP.unitCost ? ' (máš jen na ' + abbr(Math.floor(score / SHOP.unitCost) * SHOP.unitCost) + ')' : '');
+            const filled = Math.ceil(s.stock / cap * 20);
+            for (let i = 0; i < 20; i++) { const el = e('sh' + i); if (el) { el.style.opacity = i < filled ? 1 : 0.12; el.style.filter = i < filled ? 'none' : 'grayscale(1)'; } }
+            const w = e('shop-walk'); if (w) w.classList.toggle('on', s.stock >= 1);
+        };
+
+        // ===== BOOSTY (obchod s boosty) =====
+        // slot = jen jeden aktivní boost na slot; price() = cena podle tvého výdělku (aby vždycky něco stála)
+        const baseCps = () => totalCps * roleBoost.cps, baseClick = () => clickPower * roleBoost.click;
+        const BOOSTS = [
+            { id: 'earn2', slot: 'earn', e: '💰', n: 'Výdělek ×2', d: '×2 CPS i síla kliku na 5 minut', dur: 300, m: 2, price: () => Math.max(5e4, baseCps() * 150) },
+            { id: 'earn3', slot: 'earn', e: '🚀', n: 'Výdělek ×3', d: '×3 CPS i síla kliku na 15 minut', dur: 900, m: 3, price: () => Math.max(5e5, baseCps() * 900) },
+            { id: 'click5', slot: 'click', e: '👆', n: 'Mega klik ×5', d: '×5 síla kliku na 3 minuty', dur: 180, m: 5, price: () => Math.max(1e5, baseClick() * 1500) },
+            { id: 'auto', slot: 'auto', e: '🤖', n: 'Autoclicker 1 ms', d: 'Klik každou 1 ms (1000×/s) na 10 minut. Zdarma a nezapočítává se do kliků. Pak 15 min cooldown.', dur: 600, cd: 900, m: 1, price: () => Math.max(5e6, baseClick() * 300000) },
+            { id: 'offl', slot: 'offl', e: '🌙', n: 'Offline výdělek 10 %', d: 'Když jsi pryč, vyděláváš 10 % CPS za sekundu (místo 1 %) po dobu 10 hodin.', dur: 36000, m: 10, price: () => Math.max(1e6, baseCps() * 2500) },
+            { id: 'shopx', slot: 'shopx', e: '🏪', n: 'Výprodej ×2', d: 'Tržba ze Sex shopu ×2 na 10 minut (zboží se prodá stejně rychle).', dur: 600, m: 2, needShop: true, price: () => { const s = shopS(); return Math.max(5e10, s ? shopPerSec(s).inc * 300 : 0); } },
+            { id: 'spin', slot: 'spin', instant: true, e: '🎟️', n: 'Zatočení kola zdarma', d: 'Okamžitě +1 zatočení kola štěstí.', price: () => WHEEL.cost * 1.5 }
+        ];
+        function bAct(k) { const b = meta.boosts && meta.boosts[k]; return b && b.until > Date.now() ? b : null; }
+        function bCd(k) { const b = meta.boosts && meta.boosts[k]; return b && b.cdUntil > Date.now() ? b.cdUntil - Date.now() : 0; }
+        const bM = (k) => { const b = bAct(k); return b ? b.m : 1; };
+        const fmtT = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s % 60).padStart(2, '0'); };
+        function boostTick() {
+            const b = meta.boosts && meta.boosts.auto; if (!b) return;
+            const now = Date.now();
+            let from = Math.max(b.t || b.start, b.start); if (now - (b.t || b.start) > 120000) from = now - 1000;
+            const to = Math.min(now, b.until); b.t = now;
+            if (to > from) score += effClick() * (to - from);   // 1000 klikú/s = effClick × ms (nepočítá se do kliků)
+        }
+        function renderBoostChips() {
+            const el = document.getElementById('boost-chips'); if (!el) return;
+            let h = ''; BOOSTS.forEach(function (B) { const b = !B.instant && bAct(B.slot); if (b && b.id === B.id) h += '<span class="bchip">' + B.e + ' ' + fmtT(b.until - Date.now()) + '</span>'; });
+            if (tmpM() > 1) h += '<span class="bchip">🎡 ×' + tmpBoost.m + ' ' + fmtT(tmpBoost.until - Date.now()) + '</span>';
+            if (el.innerHTML !== h) el.innerHTML = h;
+        }
+        window.boostBuy = function (id) {
+            const B = BOOSTS.find(function (x) { return x.id === id; }); if (!B) return;
+            if (B.needShop && !shopS()) { showToast('Nejdřív potřebuješ Sex shop.', 2500); return; }
+            if (!B.instant && bAct(B.slot)) { showToast('Tenhle boost už běží.', 2000); return; }
+            if (bCd(B.slot)) { showToast('Cooldown ještě ' + fmtT(bCd(B.slot)), 2000); return; }
+            const price = Math.floor(B.price());
+            if (score < price) { showToast('Chybí ti ' + abbr(price - score) + '.', 2500); return; }
+            score -= price;
+            if (B.instant) meta.freeSpins = (meta.freeSpins || 0) + 1;
+            else { const now = Date.now(); meta.boosts = meta.boosts || {}; meta.boosts[B.slot] = { id: B.id, m: B.m, start: now, t: now, until: now + B.dur * 1000, cdUntil: now + (B.dur + (B.cd || 0)) * 1000 }; }
+            showToast(B.e + ' ' + B.n + ' aktivováno!', 2500, '#15803d');
+            syncGlobalState(); updateUI(); renderBoostChips(); if (window.saveGameProgress) window.saveGameProgress(false); window.boostLive();
+        };
+        window.boostHTML = function () {
+            return '<div id="boost-live"><div class="text-xs text-slate-400 mb-3">Dočasná vylepšení za coiny. Cena se odvíjí od tvého výdělku. Aktivní boosty vidíš pod počtem coinů.</div>' +
+                BOOSTS.map(function (B) {
+                    return '<div class="boost-row" id="br-' + B.id + '"><div class="text-3xl">' + B.e + '</div><div class="flex-1 min-w-0"><div class="font-bold text-sm">' + B.n + ' <span id="bt-' + B.id + '" class="text-[10px] text-green-400"></span></div><div class="text-[11px] text-slate-400">' + B.d + '</div></div>' +
+                        '<button id="bb-' + B.id + '" onclick="boostBuy(\'' + B.id + '\')" class="cbtn bg-amber-600 text-[11px] min-w-[4.6rem] leading-tight"><span id="bp-' + B.id + '"></span></button></div>';
+                }).join('') + '</div>';
+        };
+        window.boostLive = function () {
+            if (!document.getElementById('boost-live')) return;
+            BOOSTS.forEach(function (B) {
+                const e = function (x) { return document.getElementById(x + B.id); }; if (!e('bp-')) return;
+                const act = !B.instant && bAct(B.slot), cd = !B.instant && bCd(B.slot), price = Math.floor(B.price());
+                let label = abbr(price), dis = score < price;
+                if (act && act.id === B.id) { label = '⏱ ' + fmtT(act.until - Date.now()); dis = true; e('bt-').textContent = '(běží)'; }
+                else if (act) { label = 'běží jiný'; dis = true; e('bt-').textContent = ''; }
+                else if (cd) { label = 'cooldown ' + fmtT(cd); dis = true; e('bt-').textContent = ''; }
+                else e('bt-').textContent = '';
+                if (B.needShop && !shopS()) { label = 'bez obchodu'; dis = true; }
+                e('bp-').textContent = label; e('bb-').disabled = dis;
+                e('br-').classList.toggle('act', !!(act && act.id === B.id));
+            });
         };
 
         // ===== SAKURA: okvětní lístky =====
